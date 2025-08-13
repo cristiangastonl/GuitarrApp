@@ -1,0 +1,68 @@
+name: guitarr_app
+description: "Aplicación para aprender guitarra tocando con feedback en tiempo real"
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+  flutter: ">=3.16.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI & State Management
+  cupertino_icons: ^1.0.6
+  provider: ^6.1.1
+  flutter_riverpod: ^2.4.10
+
+  # Audio & Recording
+  flutter_sound: ^9.2.13
+  permission_handler: ^11.2.0
+  audio_session: ^0.1.18
+  
+  # Audio Analysis
+  fftea: ^1.0.2
+  ml_algo: ^16.11.1
+  
+  # Data & Storage
+  sqflite: ^2.3.2
+  path_provider: ^2.1.2
+  shared_preferences: ^2.2.2
+  
+  # JSON & Serialization
+  json_annotation: ^4.8.1
+  
+  # Utils
+  intl: ^0.19.0
+  equatable: ^2.0.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Linting & Code Generation
+  flutter_lints: ^3.0.1
+  build_runner: ^2.4.8
+  json_serializable: ^6.7.1
+  
+  # Testing
+  mocktail: ^1.0.3
+
+flutter:
+  uses-material-design: true
+  
+  # Assets
+  assets:
+    - assets/images/
+    - assets/audio/
+    - assets/data/
+    
+  # Fonts (commented out until assets are available)
+  # fonts:
+  #   - family: Roboto
+  #     fonts:
+  #       - asset: assets/fonts/Roboto-Regular.ttf
+  #       - asset: assets/fonts/Roboto-Bold.ttf
+  #         weight: 700
