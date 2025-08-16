@@ -7,6 +7,7 @@ import '../../features/practice/presentation/screens/practice_screen.dart';
 import '../../features/history/presentation/screens/history_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_flow.dart';
 import '../../features/onboarding/presentation/providers/onboarding_provider.dart';
+import '../../tools/dev_tools_screen.dart';
 
 class GuitarrApp extends ConsumerWidget {
   const GuitarrApp({super.key});
@@ -22,6 +23,7 @@ class GuitarrApp extends ConsumerWidget {
       routes: {
         '/home': (context) => const MainNavigationScreen(),
         '/onboarding': (context) => const OnboardingFlow(),
+        '/dev-tools': (context) => const DevToolsScreen(),
       },
       debugShowCheckedModeBanner: false,
     );

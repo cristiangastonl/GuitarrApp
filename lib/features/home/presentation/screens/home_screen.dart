@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/widgets/glass_card.dart';
@@ -14,8 +15,16 @@ class HomeScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('🎸 GuitarrApp'),
+        actions: [
+          if (kDebugMode)
+            IconButton(
+              icon: const Icon(Icons.developer_mode),
+              onPressed: () => Navigator.pushNamed(context, '/dev-tools'),
+              tooltip: 'Herramientas de Desarrollo',
+            ),
+        ],
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,9 +105,9 @@ class HomeScreen extends ConsumerWidget {
             
             const SizedBox(height: 16),
             
-            Expanded(
-              child: ListView(
-                children: [
+            // Active Goals List
+            Column(
+              children: [
                   RiffGlassCard(
                     name: 'Enter Sandman - Main Riff',
                     artist: 'Metallica',
@@ -110,6 +119,7 @@ class HomeScreen extends ConsumerWidget {
                     techniques: ['palm-muting', 'alternate-picking', 'downstrokes'],
                     riffId: 'enter_sandman_main',
                     showAudioControls: true,
+                    animationDelay: const Duration(milliseconds: 200),
                   ),
                   RiffGlassCard(
                     name: 'Paranoid - Riff Principal',
@@ -122,6 +132,7 @@ class HomeScreen extends ConsumerWidget {
                     techniques: ['alternate-picking', 'power-chords'],
                     riffId: 'paranoid_main',
                     showAudioControls: true,
+                    animationDelay: const Duration(milliseconds: 400),
                   ),
                   RiffGlassCard(
                     name: 'Back in Black - Intro',
@@ -134,15 +145,88 @@ class HomeScreen extends ConsumerWidget {
                     techniques: ['ghost-notes', 'palm-muting', 'dynamics'],
                     riffId: 'back_in_black_intro',
                     showAudioControls: true,
+                    animationDelay: const Duration(milliseconds: 600),
                   ),
                 ],
-              ),
             ),
             
             const SizedBox(height: 16),
             
             // Practice Now Button
-            Container(
+            TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 300),
+              tween: Tween(begin: 0.0, end: 1.0),
+              builder: (context, value, child) {
+                return Transform.scale(
+                  scale: 0.8 + (0.2 * value),
+                  child: Opacity(
+                    opacity: value,
+                    child: _PracticeNowButton(),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+}
+
+class _PracticeNowButton extends StatefulWidget {
+  @override
+  _PracticeNowButtonState createState() => _PracticeNowButtonState();
+}
+
+class _PracticeNowButtonState extends State<_PracticeNowButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+  bool _isPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 100),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) {
+        setState(() => _isPressed = true);
+        _animationController.forward();
+      },
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        _animationController.reverse();
+        // Navigate to practice screen
+        // Will be implemented with proper navigation
+      },
+      onTapCancel: () {
+        setState(() => _isPressed = false);
+        _animationController.reverse();
+      },
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
               width: double.infinity,
               height: 64,
               decoration: BoxDecoration(
@@ -157,35 +241,41 @@ class HomeScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                    blurRadius: 16,
-                    offset: const Offset(0, 8),
+                    color: Theme.of(context).colorScheme.primary.withOpacity(_isPressed ? 0.4 : 0.3),
+                    blurRadius: _isPressed ? 20 : 16,
+                    offset: Offset(0, _isPressed ? 12 : 8),
                   ),
                 ],
               ),
               child: Material(
                 color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: () {
-                    // Navigate to practice screen
-                    // Will be implemented with proper navigation
-                  },
+                child: Container(
                   child: Center(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
-                          Icons.play_circle_fill,
-                          color: Colors.white,
-                          size: 28,
+                        TweenAnimationBuilder<double>(
+                          duration: const Duration(milliseconds: 800),
+                          tween: Tween(begin: 0.0, end: 1.0),
+                          builder: (context, value, child) {
+                            return Transform.rotate(
+                              angle: value * 2 * 3.14159,
+                              child: Icon(
+                                Icons.play_circle_fill,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                            );
+                          },
                         ),
                         const SizedBox(width: 12),
-                        Text(
-                          'Practicar Ahora',
+                        AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 150),
                           style: GuitarrTypography.buttonPrimary.copyWith(
-                            fontSize: 18,
+                            fontSize: _isPressed ? 17 : 18,
+                            color: Colors.white,
                           ),
+                          child: Text('Practicar Ahora'),
                         ),
                       ],
                     ),
@@ -193,10 +283,9 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
-  
 }
