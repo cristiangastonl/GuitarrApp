@@ -5,6 +5,8 @@ import '../../shared/theme/app_theme.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/practice/presentation/screens/practice_screen.dart';
 import '../../features/history/presentation/screens/history_screen.dart';
+import '../../features/onboarding/presentation/screens/onboarding_flow.dart';
+import '../../features/onboarding/presentation/providers/onboarding_provider.dart';
 
 class GuitarrApp extends ConsumerWidget {
   const GuitarrApp({super.key});
@@ -13,10 +15,63 @@ class GuitarrApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
       title: 'GuitarrApp',
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      home: const MainNavigationScreen(),
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.dark, // Default to dark theme for musicians
+      home: const AppInitializer(),
+      routes: {
+        '/home': (context) => const MainNavigationScreen(),
+        '/onboarding': (context) => const OnboardingFlow(),
+      },
       debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+class AppInitializer extends ConsumerWidget {
+  const AppInitializer({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final onboardingStatus = ref.watch(onboardingStatusProvider);
+    
+    return onboardingStatus.when(
+      data: (isOnboardingComplete) {
+        return isOnboardingComplete 
+            ? const MainNavigationScreen()
+            : const OnboardingFlow();
+      },
+      loading: () => const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Iniciando GuitarrApp...'),
+            ],
+          ),
+        ),
+      ),
+      error: (error, stackTrace) => Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Error al inicializar: $error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  ref.invalidate(onboardingStatusProvider);
+                },
+                child: const Text('Reintentar'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

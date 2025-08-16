@@ -45,5 +45,57 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	
+	<!-- PERMISOS DE SEGURIDAD CRÍTICOS -->
+	<!-- Permiso para usar el micrófono (CRÍTICO) -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>GuitarrApp necesita acceso al micrófono para grabar tu práctica de guitarra y proporcionar feedback personalizado sobre tu interpretación.</string>
+	
+	<!-- Configuraciones de seguridad de red -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!-- Requiere HTTPS para todas las conexiones -->
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<!-- Configuración específica para APIs permitidas -->
+		<key>NSExceptionDomains</key>
+		<dict>
+			<!-- Spotify API seguro -->
+			<key>accounts.spotify.com</key>
+			<dict>
+				<key>NSExceptionRequiresForwardSecrecy</key>
+				<false/>
+				<key>NSExceptionMinimumTLSVersion</key>
+				<string>TLSv1.2</string>
+				<key>NSThirdPartyExceptionRequiresForwardSecrecy</key>
+				<false/>
+			</dict>
+		</dict>
+	</dict>
+	
+	<!-- Configuraciones de privacidad adicionales -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>GuitarrApp puede acceder a tu biblioteca de fotos para personalizar tu perfil de práctica.</string>
+	
+	<!-- Configuración de Background Modes para audio -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+	
+	<!-- Configuraciones de seguridad del dispositivo -->
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>microphone</string>
+		<string>armv7</string>
+	</array>
+	
+	<!-- Prevenir backup de datos sensibles -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	
+	<!-- Configuración de orientación forzada para seguridad -->
+	<key>UIRequiresFullScreen</key>
+	<true/>
 </dict>
 </plist>

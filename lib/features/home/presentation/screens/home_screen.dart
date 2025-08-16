@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../shared/widgets/glass_card.dart';
+import '../../../../shared/widgets/smart_recommendations_widget.dart';
+import '../../../../shared/widgets/spotify_playlist_widget.dart';
+import '../../../../shared/theme/typography.dart';
+import '../../../../shared/theme/colors.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -16,67 +21,119 @@ class HomeScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Welcome Section
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      '¡Bienvenido!',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+            GlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Theme.of(context).colorScheme.primary,
+                              Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.music_note,
+                          color: Colors.white,
+                          size: 28,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Mejora tu técnica de guitarra con práctica inteligente',
-                      style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                        color: Colors.grey[600],
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '¡Bienvenido!',
+                              style: GuitarrTypography.displaySmall,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Mejora tu técnica de guitarra con práctica inteligente',
+                              style: GuitarrTypography.bodyLarge.copyWith(
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
             ),
             
             const SizedBox(height: 24),
             
+            // Smart Recommendations Section
+            SmartRecommendationsWidget(
+              userId: 'user_1', // TODO: Get from user session
+              onRefresh: () {
+                // Handle refresh if needed
+              },
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Spotify Integration Section
+            SpotifyPlaylistWidget(),
+            
+            const SizedBox(height: 24),
+            
             // Active Goals Section
-            const Text(
+            Text(
               'Metas Activas',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+              style: GuitarrTypography.headlineMedium.copyWith(
+                color: GuitarrColors.textPrimary,
               ),
             ),
             
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             
             Expanded(
               child: ListView(
                 children: [
-                  _buildGoalCard(
-                    context,
-                    title: 'Enter Sandman - Main Riff',
-                    subtitle: 'Objetivo: 116 BPM',
+                  RiffGlassCard(
+                    name: 'Enter Sandman - Main Riff',
+                    artist: 'Metallica',
+                    genre: 'metal',
+                    difficulty: 'medium',
+                    targetBpm: 116,
+                    currentBpm: 108,
                     progress: 0.7,
-                    currentBpm: '108 BPM',
+                    techniques: ['palm-muting', 'alternate-picking', 'downstrokes'],
+                    riffId: 'enter_sandman_main',
+                    showAudioControls: true,
                   ),
-                  _buildGoalCard(
-                    context,
-                    title: 'Paranoid - Riff Principal',
-                    subtitle: 'Objetivo: 164 BPM',
+                  RiffGlassCard(
+                    name: 'Paranoid - Riff Principal',
+                    artist: 'Black Sabbath',
+                    genre: 'rock',
+                    difficulty: 'medium',
+                    targetBpm: 164,
+                    currentBpm: 140,
                     progress: 0.4,
-                    currentBpm: '140 BPM',
+                    techniques: ['alternate-picking', 'power-chords'],
+                    riffId: 'paranoid_main',
+                    showAudioControls: true,
                   ),
-                  _buildGoalCard(
-                    context,
-                    title: 'Back in Black - Intro',
-                    subtitle: 'Ghost notes y dinámicas',
+                  RiffGlassCard(
+                    name: 'Back in Black - Intro',
+                    artist: 'AC/DC',
+                    genre: 'rock',
+                    difficulty: 'hard',
+                    targetBpm: 93,
+                    currentBpm: 88,
                     progress: 0.3,
-                    currentBpm: '88 BPM',
+                    techniques: ['ghost-notes', 'palm-muting', 'dynamics'],
+                    riffId: 'back_in_black_intro',
+                    showAudioControls: true,
                   ),
                 ],
               ),
@@ -85,27 +142,54 @@ class HomeScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             
             // Practice Now Button
-            SizedBox(
+            Container(
               width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Navigate to practice screen
-                  // Will be implemented with proper navigation
-                },
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.play_circle_fill, size: 24),
-                    SizedBox(width: 8),
-                    Text(
-                      'Practicar Ahora',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+              height: 64,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Theme.of(context).colorScheme.primary,
+                    Theme.of(context).colorScheme.primary.withOpacity(0.8),
                   ],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () {
+                    // Navigate to practice screen
+                    // Will be implemented with proper navigation
+                  },
+                  child: Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.play_circle_fill,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Practicar Ahora',
+                          style: GuitarrTypography.buttonPrimary.copyWith(
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -115,99 +199,4 @@ class HomeScreen extends ConsumerWidget {
     );
   }
   
-  Widget _buildGoalCard(
-    BuildContext context, {
-    required String title,
-    required String subtitle,
-    required double progress,
-    required String currentBpm,
-  }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    currentBpm,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 12),
-            
-            LinearProgressIndicator(
-              value: progress,
-              backgroundColor: Colors.grey[300],
-              valueColor: AlwaysStoppedAnimation<Color>(
-                Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            
-            const SizedBox(height: 8),
-            
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Progreso: ${(progress * 100).round()}%',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                Text(
-                  '${(progress * 5).round()}/5 pasos',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

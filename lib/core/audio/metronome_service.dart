@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:html' as html;
+import '../services/secure_logging_service.dart';
 
 // Provider para el servicio del metrónomo
 final metronomeServiceProvider = Provider<MetronomeService>((ref) {
@@ -78,7 +79,7 @@ class MetronomeService {
         });
         html.window.dispatchEvent(event);
       } catch (e) {
-        print('Error playing web metronome click: $e');
+        SecureLoggingService.error('Error playing web metronome click', tag: LogTags.audio, error: e);
       }
     }
   }

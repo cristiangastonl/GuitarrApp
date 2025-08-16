@@ -13,6 +13,10 @@ class Session {
   final List<SessionFeedback> feedback;
   final String notes;
   final bool completed;
+  final double timingScore;
+  final double consistencyScore;
+  final double progressScore;
+  final double frequencyScore;
 
   const Session({
     required this.id,
@@ -29,6 +33,10 @@ class Session {
     required this.feedback,
     this.notes = '',
     this.completed = false,
+    this.timingScore = 0.0,
+    this.consistencyScore = 0.0,
+    this.progressScore = 0.0,
+    this.frequencyScore = 0.0,
   });
 
   factory Session.fromJson(Map<String, dynamic> json) {
@@ -51,6 +59,10 @@ class Session {
           .toList(),
       notes: json['notes'] as String? ?? '',
       completed: json['completed'] as bool? ?? false,
+      timingScore: (json['timingScore'] as num?)?.toDouble() ?? 0.0,
+      consistencyScore: (json['consistencyScore'] as num?)?.toDouble() ?? 0.0,
+      progressScore: (json['progressScore'] as num?)?.toDouble() ?? 0.0,
+      frequencyScore: (json['frequencyScore'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -70,6 +82,10 @@ class Session {
       'feedback': feedback.map((f) => f.toJson()).toList(),
       'notes': notes,
       'completed': completed,
+      'timingScore': timingScore,
+      'consistencyScore': consistencyScore,
+      'progressScore': progressScore,
+      'frequencyScore': frequencyScore,
     };
   }
 
@@ -88,6 +104,10 @@ class Session {
     List<SessionFeedback>? feedback,
     String? notes,
     bool? completed,
+    double? timingScore,
+    double? consistencyScore,
+    double? progressScore,
+    double? frequencyScore,
   }) {
     return Session(
       id: id ?? this.id,
@@ -104,6 +124,10 @@ class Session {
       feedback: feedback ?? this.feedback,
       notes: notes ?? this.notes,
       completed: completed ?? this.completed,
+      timingScore: timingScore ?? this.timingScore,
+      consistencyScore: consistencyScore ?? this.consistencyScore,
+      progressScore: progressScore ?? this.progressScore,
+      frequencyScore: frequencyScore ?? this.frequencyScore,
     );
   }
 
@@ -124,7 +148,11 @@ class Session {
         other.totalAttempts == totalAttempts &&
         other.feedback.toString() == feedback.toString() &&
         other.notes == notes &&
-        other.completed == completed;
+        other.completed == completed &&
+        other.timingScore == timingScore &&
+        other.consistencyScore == consistencyScore &&
+        other.progressScore == progressScore &&
+        other.frequencyScore == frequencyScore;
   }
 
   @override
@@ -144,7 +172,22 @@ class Session {
       feedback,
       notes,
       completed,
+      timingScore,
+      consistencyScore,
+      progressScore,
+      frequencyScore,
     );
+  }
+
+  // Computed properties
+  DateTime get sessionDate => startTime;
+  
+  double get overallScore {
+    // Calculate overall score based on weighted average of different metrics
+    return (timingScore * 0.4 + 
+            consistencyScore * 0.3 + 
+            progressScore * 0.2 + 
+            frequencyScore * 0.1).clamp(0.0, 100.0);
   }
 }
 

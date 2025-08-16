@@ -135,6 +135,14 @@ class DatabaseHelper {
     return _userSetupFromMap(maps.first);
   }
 
+  static Future<UserSetup?> getUserSetupById(String id) async {
+    final db = await database;
+    final maps = await db.query('user_setup', where: 'id = ?', whereArgs: [id]);
+    
+    if (maps.isEmpty) return null;
+    return _userSetupFromMap(maps.first);
+  }
+
   static Future<int> updateUserSetup(UserSetup userSetup) async {
     final db = await database;
     return await db.update(
@@ -207,6 +215,15 @@ class DatabaseHelper {
     return maps.map(_sessionFromMap).toList();
   }
 
+  static Future<List<Session>> getAllSessions() async {
+    final db = await database;
+    final maps = await db.query(
+      'sessions',
+      orderBy: 'start_time DESC',
+    );
+    return maps.map(_sessionFromMap).toList();
+  }
+
   static Future<int> updateSession(Session session) async {
     final db = await database;
     return await db.update(
@@ -238,6 +255,18 @@ class DatabaseHelper {
       orderBy: 'name ASC',
     );
     return maps.map(_tonePresetFromMap).toList();
+  }
+
+  static Future<TonePreset?> getTonePresetById(String id) async {
+    final db = await database;
+    final maps = await db.query(
+      'tone_presets',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    
+    if (maps.isEmpty) return null;
+    return _tonePresetFromMap(maps.first);
   }
 
   static Future<int> updateTonePreset(TonePreset preset) async {

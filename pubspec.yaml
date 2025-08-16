@@ -21,6 +21,7 @@ dependencies:
   flutter_sound: ^9.2.13
   permission_handler: ^11.2.0
   audio_session: ^0.1.18
+  just_audio: ^0.9.36
   
   # Audio Analysis
   fftea: ^1.0.2
@@ -28,7 +29,7 @@ dependencies:
   
   # Data & Storage
   sqflite: ^2.3.2
-  path_provider: ^2.1.2
+  path_provider: ^2.1.5
   shared_preferences: ^2.2.2
   
   # JSON & Serialization
@@ -37,6 +38,18 @@ dependencies:
   # Utils
   intl: ^0.19.0
   equatable: ^2.0.5
+  
+  # HTTP & API
+  http: ^1.2.0
+  flutter_dotenv: ^5.2.1
+  
+  # Security & Encryption
+  flutter_secure_storage: ^9.0.0
+  crypto: ^3.0.3
+  encrypt: ^5.0.1
+  
+  # Database Encryption
+  sqlcipher_flutter_libs: ^0.6.0
 
 dev_dependencies:
   flutter_test:
@@ -57,7 +70,9 @@ flutter:
   assets:
     - assets/images/
     - assets/audio/
+    - assets/audio/backing_tracks/
     - assets/data/
+    # .env removido por seguridad - credenciales ahora en almacenamiento seguro
     
   # Fonts (commented out until assets are available)
   # fonts:

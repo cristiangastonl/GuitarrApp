@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import '../models/models.dart';
 import '../storage/storage.dart';
+import 'secure_logging_service.dart';
 
 class RiffLoaderService {
   static const String _riffsAssetPath = 'assets/data/riffs_database.json';
@@ -38,9 +39,9 @@ class RiffLoaderService {
           await DatabaseHelper.insertSongRiff(riff);
         }
         
-        print('✅ Database initialized with ${riffs.length} riffs');
+        SecureLoggingService.info('Database initialized with ${riffs.length} riffs', tag: LogTags.database);
       } else {
-        print('📊 Database already contains ${existingRiffs.length} riffs');
+        SecureLoggingService.info('Database already contains ${existingRiffs.length} riffs', tag: LogTags.database);
       }
     } catch (e) {
       throw Exception('Error initializing database: $e');
@@ -199,7 +200,7 @@ class RiffLoaderService {
       
       return true;
     } catch (e) {
-      print('Error updating riff progress: $e');
+      SecureLoggingService.error('Error updating riff progress', tag: LogTags.database, error: e);
       return false;
     }
   }
