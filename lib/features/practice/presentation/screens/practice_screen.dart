@@ -7,6 +7,7 @@ import '../../../../core/services/recording_service.dart';
 import '../../../../core/services/feedback_analysis_service.dart';
 import '../../../../shared/widgets/visual_metronome.dart';
 import '../../../../shared/widgets/glass_card.dart';
+import '../../../../shared/widgets/riff_glass_card.dart';
 import '../../../../shared/widgets/intelligent_backing_tracks_widget.dart';
 import '../widgets/recordings_list.dart';
 import '../../../feedback/presentation/screens/feedback_screen.dart';

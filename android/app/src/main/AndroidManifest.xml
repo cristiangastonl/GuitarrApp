@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.guitarrapp">
+    package="com.guitarrap">
 
    <!-- Permisos críticos para grabación de audio -->
    <uses-permission android:name="android.permission.RECORD_AUDIO" />
@@ -71,5 +71,5 @@
     <uses-feature android:name="android.hardware.audio.output" android:required="true" />
     
     <!-- Mínima versión de Android requerida -->
-    <uses-sdk android:minSdkVersion="21" />
+    <uses-sdk android:minSdkVersion="24" />
 </manifest>

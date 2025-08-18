@@ -2,10 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/widgets/glass_card.dart';
+import '../../../../shared/widgets/riff_glass_card.dart';
 import '../../../../shared/widgets/smart_recommendations_widget.dart';
 import '../../../../shared/widgets/spotify_playlist_widget.dart';
 import '../../../../shared/theme/typography.dart';
 import '../../../../shared/theme/colors.dart';
+import '../../../spotify_test_widget.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -89,6 +91,12 @@ class HomeScreen extends ConsumerWidget {
             ),
             
             const SizedBox(height: 24),
+            
+            // Spotify Test Section (Only in debug mode)
+            if (kDebugMode) ...[
+              SpotifyTestWidget(),
+              const SizedBox(height: 24),
+            ],
             
             // Spotify Integration Section
             SpotifyPlaylistWidget(),

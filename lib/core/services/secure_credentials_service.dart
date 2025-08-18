@@ -45,8 +45,8 @@ class SecureCredentialsService {
         // En desarrollo, usar credenciales por defecto
         // EN PRODUCCIÓN: Estas deberían venir de un servidor seguro
         await _storeSpotifyCredentials(
-          clientId: 'tu_client_id_aqui', // TODO: Configurar en producción
-          clientSecret: 'tu_client_secret_aqui', // TODO: Configurar en producción
+          clientId: '4e925f77ef3c48c6b7e7752b9c5c4787',
+          clientSecret: '30595005cd6a4877af50c1318f9cff4a',
         );
         
         // Generar clave de encriptación para la base de datos

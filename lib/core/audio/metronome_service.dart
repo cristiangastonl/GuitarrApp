@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:html' as html;
 import '../services/secure_logging_service.dart';
+import 'metronome_web_stub.dart' if (dart.library.html) 'metronome_web.dart';
 
 // Provider para el servicio del metrónomo
 final metronomeServiceProvider = Provider<MetronomeService>((ref) {
@@ -72,12 +72,11 @@ class MetronomeService {
     if (kIsWeb) {
       try {
         // Dispatch custom event to trigger web audio
-        final event = html.CustomEvent('flutter_metronome_play', detail: {
+        dispatchWebEvent('flutter_metronome_play', {
           'isAccent': isAccent,
           'frequency': isAccent ? 1000.0 : 800.0,
           'duration': 0.1,
         });
-        html.window.dispatchEvent(event);
       } catch (e) {
         SecureLoggingService.error('Error playing web metronome click', tag: LogTags.audio, error: e);
       }
