@@ -1,0 +1,265 @@
+[
+  {
+    "id": "course_timing_fundamentals",
+    "name": "Fundamentos de Timing",
+    "description": "Aprende a mantener el pulso y desarrolla tu sentido del ritmo con ejercicios progresivos.",
+    "difficulty": "beginner",
+    "modules": [
+      {
+        "id": "mod_timing_basics",
+        "name": "Pulso Basico",
+        "description": "Ejercicios para sentir y mantener el pulso",
+        "orderInCourse": 0,
+        "exerciseIds": ["timing_pulse_60", "timing_pulse_80", "timing_pulse_100"]
+      },
+      {
+        "id": "mod_timing_eighth",
+        "name": "Corcheas",
+        "description": "Subdivision del pulso en corcheas",
+        "orderInCourse": 1,
+        "exerciseIds": ["timing_eighth_60", "timing_eighth_80"],
+        "prerequisiteModuleId": "mod_timing_basics"
+      },
+      {
+        "id": "mod_timing_patterns",
+        "name": "Patrones Ritmicos",
+        "description": "Combinaciones de negras, corcheas y silencios",
+        "orderInCourse": 2,
+        "exerciseIds": ["timing_rests_70", "timing_pattern_mix", "timing_syncope_70"],
+        "prerequisiteModuleId": "mod_timing_eighth"
+      }
+    ],
+    "category": "timing",
+    "estimatedMinutes": 25,
+    "learningObjectives": [
+      "Mantener un pulso constante a diferentes velocidades",
+      "Tocar corcheas con precision",
+      "Ejecutar patrones ritmicos con silencios",
+      "Sentir la sincopa basica"
+    ],
+    "isPremium": false,
+    "createdAt": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "course_first_notes",
+    "name": "Primeras Notas",
+    "description": "Conoce las cuerdas al aire y aprende a tocar notas limpias con buena tecnica.",
+    "difficulty": "beginner",
+    "modules": [
+      {
+        "id": "mod_open_strings",
+        "name": "Cuerdas al Aire",
+        "description": "Aprende las 6 cuerdas al aire de la guitarra",
+        "orderInCourse": 0,
+        "exerciseIds": ["notes_string_6_e", "notes_string_5_a", "notes_string_4_d", "notes_all_bass", "notes_all_strings"]
+      },
+      {
+        "id": "mod_first_frets",
+        "name": "Primeros Trastes",
+        "description": "Notas en los primeros 3 trastes",
+        "orderInCourse": 1,
+        "exerciseIds": ["notes_fret_1_e", "notes_fret_2_e", "notes_fret_3_e", "notes_chromatic_e"],
+        "prerequisiteModuleId": "mod_open_strings"
+      }
+    ],
+    "category": "notes",
+    "estimatedMinutes": 20,
+    "learningObjectives": [
+      "Identificar y tocar las 6 cuerdas al aire",
+      "Producir un sonido limpio y claro",
+      "Presionar los trastes con la tecnica correcta",
+      "Memorizar las notas basicas"
+    ],
+    "isPremium": false,
+    "createdAt": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "course_coordination",
+    "name": "Coordinacion de Manos",
+    "description": "Desarrolla la sincronizacion entre tu mano izquierda y derecha con el clasico ejercicio 1-2-3-4.",
+    "difficulty": "beginner",
+    "modules": [
+      {
+        "id": "mod_coord_basic",
+        "name": "Ejercicio 1-2-3-4",
+        "description": "El ejercicio fundamental para coordinacion",
+        "orderInCourse": 0,
+        "exerciseIds": ["coord_1234_slow", "coord_1234_medium", "coord_1234_moving"]
+      },
+      {
+        "id": "mod_coord_patterns",
+        "name": "Patrones de Dedos",
+        "description": "Variaciones del ejercicio basico",
+        "orderInCourse": 1,
+        "exerciseIds": ["coord_1324", "coord_1423", "coord_reverse"],
+        "prerequisiteModuleId": "mod_coord_basic"
+      }
+    ],
+    "category": "technique",
+    "estimatedMinutes": 20,
+    "learningObjectives": [
+      "Sincronizar ambas manos perfectamente",
+      "Desarrollar independencia de dedos",
+      "Mejorar la precision y limpieza",
+      "Prepararte para escalas y solos"
+    ],
+    "isPremium": false,
+    "createdAt": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "course_open_chords",
+    "name": "Acordes Abiertos",
+    "description": "Aprende los acordes abiertos mas usados: E, A, D, G, C y Em, Am, Dm.",
+    "difficulty": "beginner",
+    "modules": [
+      {
+        "id": "mod_chords_major",
+        "name": "Acordes Mayores",
+        "description": "E, A y D - los acordes mas faciles",
+        "orderInCourse": 0,
+        "exerciseIds": ["chord_e_major", "chord_a_major", "chord_d_major", "chord_ead_changes"]
+      },
+      {
+        "id": "mod_chords_minor",
+        "name": "Acordes Menores",
+        "description": "Em, Am y Dm",
+        "orderInCourse": 1,
+        "exerciseIds": ["chord_e_minor", "chord_a_minor", "chord_d_minor", "chord_minor_changes"],
+        "prerequisiteModuleId": "mod_chords_major"
+      },
+      {
+        "id": "mod_chords_gc",
+        "name": "G y C",
+        "description": "Los acordes G y C que completan tu vocabulario basico",
+        "orderInCourse": 2,
+        "exerciseIds": ["chord_g_major", "chord_c_major", "chord_gc_changes"],
+        "prerequisiteModuleId": "mod_chords_minor"
+      }
+    ],
+    "category": "chords",
+    "estimatedMinutes": 35,
+    "learningObjectives": [
+      "Formar acordes mayores y menores correctamente",
+      "Hacer cambios de acordes suaves",
+      "Rasguear con ritmo constante",
+      "Tocar progresiones basicas de canciones"
+    ],
+    "isPremium": false,
+    "createdAt": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "course_strumming",
+    "name": "Patrones de Rasgueo",
+    "description": "Domina los patrones de rasgueo mas populares para acompanar canciones.",
+    "difficulty": "intermediate",
+    "modules": [
+      {
+        "id": "mod_strum_basic",
+        "name": "Rasgueos Basicos",
+        "description": "Abajo-arriba y ritmos simples",
+        "orderInCourse": 0,
+        "exerciseIds": ["strum_down_basic", "strum_down_up", "strum_basic_4"]
+      },
+      {
+        "id": "mod_strum_patterns",
+        "name": "Patrones Populares",
+        "description": "Los ritmos mas usados en canciones",
+        "orderInCourse": 1,
+        "exerciseIds": ["strum_folk", "strum_pop", "strum_rock"],
+        "prerequisiteModuleId": "mod_strum_basic"
+      }
+    ],
+    "category": "rhythm",
+    "estimatedMinutes": 25,
+    "learningObjectives": [
+      "Rasguear hacia abajo y arriba con fluidez",
+      "Mantener el ritmo mientras cambias acordes",
+      "Tocar patrones de folk, pop y rock",
+      "Acentuar los tiempos correctos"
+    ],
+    "isPremium": false,
+    "createdAt": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "course_techniques",
+    "name": "Tecnicas Expresivas",
+    "description": "Aprende hammer-ons, pull-offs y slides para dar vida a tu musica.",
+    "difficulty": "intermediate",
+    "modules": [
+      {
+        "id": "mod_tech_hammer",
+        "name": "Hammer-ons",
+        "description": "Golpear las cuerdas con los dedos de la mano izquierda",
+        "orderInCourse": 0,
+        "exerciseIds": ["tech_hammer_basic", "tech_hammer_sequence"]
+      },
+      {
+        "id": "mod_tech_pull",
+        "name": "Pull-offs",
+        "description": "Jalar las cuerdas para producir notas",
+        "orderInCourse": 1,
+        "exerciseIds": ["tech_pull_basic", "tech_pull_sequence"],
+        "prerequisiteModuleId": "mod_tech_hammer"
+      },
+      {
+        "id": "mod_tech_slides",
+        "name": "Slides",
+        "description": "Deslizar entre notas",
+        "orderInCourse": 2,
+        "exerciseIds": ["tech_slide_up", "tech_slide_down", "tech_slide_combo"],
+        "prerequisiteModuleId": "mod_tech_pull"
+      }
+    ],
+    "category": "technique",
+    "estimatedMinutes": 30,
+    "learningObjectives": [
+      "Ejecutar hammer-ons limpios",
+      "Hacer pull-offs con buen volumen",
+      "Deslizar entre notas con precision",
+      "Combinar tecnicas fluidamente"
+    ],
+    "isPremium": false,
+    "createdAt": "2024-01-01T00:00:00Z"
+  },
+  {
+    "id": "course_pentatonic",
+    "name": "Escala Pentatonica",
+    "description": "La escala mas importante para solos e improvisacion en rock, blues y pop.",
+    "difficulty": "intermediate",
+    "modules": [
+      {
+        "id": "mod_penta_pos1",
+        "name": "Posicion 1",
+        "description": "La posicion mas usada de la pentatonica",
+        "orderInCourse": 0,
+        "exerciseIds": ["penta_pos1_slow", "penta_pos1_medium", "penta_pos1_pattern"]
+      },
+      {
+        "id": "mod_penta_pos2",
+        "name": "Posicion 2",
+        "description": "Segunda posicion de la escala",
+        "orderInCourse": 1,
+        "exerciseIds": ["penta_pos2_slow", "penta_pos2_pattern"],
+        "prerequisiteModuleId": "mod_penta_pos1"
+      },
+      {
+        "id": "mod_penta_connect",
+        "name": "Conectando Posiciones",
+        "description": "Moverse entre posiciones",
+        "orderInCourse": 2,
+        "exerciseIds": ["penta_connect_12", "penta_licks_basic"],
+        "prerequisiteModuleId": "mod_penta_pos2"
+      }
+    ],
+    "category": "scales",
+    "estimatedMinutes": 35,
+    "learningObjectives": [
+      "Memorizar las posiciones de la pentatonica",
+      "Tocar la escala ascendente y descendente",
+      "Conectar posiciones fluidamente",
+      "Improvisar licks basicos"
+    ],
+    "isPremium": false,
+    "createdAt": "2024-01-01T00:00:00Z"
+  }
+]

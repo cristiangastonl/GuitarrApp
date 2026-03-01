@@ -1,170 +1,154 @@
 # GuitarrApp 🎸
-**Aplicación móvil para aprender guitarra de forma interactiva**
+**Tutor de Guitarra con IA - Aprende tocando con feedback en tiempo real**
 
-## 🎵 Estado del Proyecto
-**Versión Actual:** Sprint 4 Completado ✅  
-**Plataforma:** Flutter (iOS/Android/Web)  
+## 🎵 Acerca del Proyecto
+
+GuitarrApp es un tutor de guitarra que **escucha mientras tocas** y te da feedback en tiempo real. Mediante detección de pitch y análisis de audio, evalúa tu precisión de timing y notas, ayudándote a mejorar de forma medible.
+
+**Versión:** 2.0
+**Plataforma:** Flutter (iOS/Android)
 **Arquitectura:** Clean Architecture + Riverpod
 
-## 🚀 Sprints Completados
+---
 
-### ✅ Sprint 1: Core Foundation & Web Audio
-- Configuración inicial del proyecto Flutter
-- Integración de web audio y FlutterSound
-- Sistema de metrónomo visual funcional
-- Fundación del sistema de audio
+## ✨ Características Principales
 
-### ✅ Sprint 2: Visual Foundation
-- **Sistema de tema glassmorphic** completo con GuitarrColors y GuitarrTypography
-- **Componentes visuales** (GlassCard, MusicGlassCard, RiffGlassCard)
-- **Pantalla Home** con navegación y estilo guitarrista
-- **Diseño optimizado** para músicos en entornos de poca luz
+### 🎯 Práctica Guiada
+- Ejercicios progresivos de timing y notas
+- Feedback visual en tiempo real (verde/amarillo/rojo)
+- Metrónomo integrado con indicador de beat
+- Cursos estructurados con desbloqueo progresivo
 
-### ✅ Sprint 3: Practice Session Core  
-- **Pantalla de práctica** interactiva con metrónomo
-- **Sistema de BPM** dinámico (40-200 BPM)
-- **Indicadores visuales** de compás y tempo
-- **Integración de audio** para práctica en tiempo real
+### 📊 Evaluación Inteligente
+- Puntuación de timing, precisión y consistencia
+- Análisis detallado de cada nota tocada
+- Tips personalizados basados en tu desempeño
+- Test de nivel para determinar tu punto de partida
 
-### ✅ Sprint 4: Advanced Features & Optimization
-- **🎯 Onboarding Flow:** Selección de objetivos, configuración de equipo, evaluación inicial
-- **📊 History Screen Advanced:** Gráficos de progreso y sistema de logros
-- **🎛️ Tone Preset System:** Recomendaciones de equipo y presets por género
-- **⚡ Performance Optimization:** Gestión de memoria, caché LRU, widgets optimizados
-- **🧪 Testing & Quality Assurance:** Suite de tests unitarios y de widgets
+### 📈 Seguimiento de Progreso
+- Historial de ejercicios completados
+- Racha diaria de práctica
+- Estadísticas de tiempo practicado
+- Progreso por curso y módulo
 
-## 🏗️ Arquitectura Técnica
+---
 
-### 📁 Estructura del Proyecto
+## 🏗️ Arquitectura
+
 ```
 lib/
 ├── core/
-│   ├── app/              # Configuración principal
-│   ├── cache/            # Sistema de caché LRU con TTL
-│   └── services/         # Servicios de audio y Spotify
+│   ├── models/          # Exercise, Course, ExerciseResult, UserProgress
+│   ├── services/        # Evaluación, progreso, feedback, diagnóstico
+│   ├── audio/           # Metrónomo
+│   └── storage/         # SQLite
 ├── features/
-│   ├── home/            # Pantalla principal
-│   ├── practice/        # Sistema de práctica
-│   ├── onboarding/      # Flujo de bienvenida
-│   └── history/         # Historial y progreso
+│   └── tutor/
+│       └── presentation/
+│           ├── screens/   # Home, cursos, ejercicio, resultados
+│           ├── widgets/   # Feedback, timing, notas
+│           └── providers/ # Riverpod state
 └── shared/
-    ├── theme/           # Sistema de tema glassmorphic
+    ├── theme/           # Tema glassmorphic
     └── widgets/         # Componentes reutilizables
+
+assets/
+└── data/exercises/
+    ├── courses.json     # Definición de cursos
+    └── exercises.json   # Definición de ejercicios
 ```
 
-### 🎨 Sistema de Diseño
-- **Tema:** Glassmorphic oscuro optimizado para músicos
-- **Colores:** Paleta guitarrista (amp orange, guitar teal, steel gold)
-- **Tipografía:** Especializada para BPM, timers y técnicas
-- **Componentes:** Cards con efecto cristal y blur
+---
 
-### 🔧 Tecnologías Clave
-- **Flutter 3.x** con arquitectura limpia
-- **Riverpod** para gestión de estado reactivo
-- **SQLite + SQLCipher** para persistencia segura
-- **FlutterSound + Web Audio** para procesamiento de audio
-- **LRU Cache** para optimización de rendimiento
+## 🚀 Inicio Rápido
 
-## 🎯 Funcionalidades Implementadas
-
-### 🎵 Sistema de Audio
-- Metrónomo visual con indicadores de compás
-- Control preciso de BPM (40-200)
-- Audio web para práctica en tiempo real
-- Integración con FlutterSound
-
-### 🎨 Interfaz Glassmorphic
-- Cards con efectos de cristal y blur
-- Colores adaptivos por género musical
-- Optimizado para entornos de poca luz
-- Animaciones fluidas y responsivas
-
-### 🎛️ Presets de Sonido
-- Sistema de recomendaciones por género
-- Matching de equipos (guitarras/amplificadores)
-- Cache inteligente para acceso rápido
-- Widgets optimizados con lazy loading
-
-### 📊 Seguimiento de Progreso
-- Historial de sesiones de práctica
-- Sistema de logros y badges
-- Gráficos de progreso temporal
-- Métricas de rendimiento
-
-### ⚡ Optimización de Rendimiento
-- **AppCacheManager:** Cache LRU con TTL automático
-- **RepaintBoundary:** Optimización de render
-- **Lazy Loading:** Carga diferida de presets
-- **Memory Management:** Limpieza automática de recursos
-
-## 🧪 Testing
-
-### 📋 Cobertura de Tests
-- **Cache Manager:** Tests unitarios completos para LRU y TTL
-- **Theme System:** Validación de colores y tipografía
-- **Glass Components:** Tests de widgets glassmorphic
-- **Integration Tests:** Flujo completo de la aplicación
-
-### 🎯 Archivos de Test
-```
-test/
-├── unit/
-│   ├── cache_test.dart      # Tests del sistema de caché
-│   └── theme_test.dart      # Tests del sistema de tema
-└── widget/
-    └── glass_card_test.dart # Tests de componentes glassmorphic
-```
-
-## 🚀 Cómo Ejecutar
-
-### 📱 Desarrollo Local
 ```bash
 # Instalar dependencias
 flutter pub get
 
-# Ejecutar en Chrome (recomendado para desarrollo)
-flutter run -d chrome
-
-# Ejecutar en dispositivo móvil
+# Ejecutar
 flutter run
+
+# Verificar código
+flutter analyze
 ```
-
-### 🧪 Ejecutar Tests
-```bash
-# Tests unitarios
-flutter test test/unit/
-
-# Tests de widgets
-flutter test test/widget/
-
-# Todos los tests
-flutter test
-```
-
-## 🔮 Próximos Pasos
-
-### 🎯 Sprint 5 (Planificado)
-- **Integración con Spotify:** Importación de tracks favoritos
-- **Social Features:** Compartir progreso y competir
-- **Advanced Analytics:** Métricas detalladas de práctica
-- **Cloud Sync:** Sincronización entre dispositivos
-
-### 🎸 Funcionalidades Avanzadas
-- **Reconocimiento de acordes** con machine learning
-- **Tablatura interactiva** sincronizada con audio
-- **Jam sessions virtuales** multijugador
-- **Integración con DAW** para grabación
-
-## 🤝 Contribuir
-
-Este proyecto está en desarrollo activo. Para contribuir:
-1. Fork del repositorio
-2. Crear rama feature (`git checkout -b feature/nueva-funcionalidad`)
-3. Commit con mensaje descriptivo
-4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
-5. Crear Pull Request
 
 ---
 
-**Desarrollado con ❤️ para la comunidad guitarrista**  
+## 📚 Documentación
+
+| Documento | Descripción |
+|-----------|-------------|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Arquitectura completa del proyecto |
+| [docs/QUICKSTART.md](docs/QUICKSTART.md) | Guía para agregar ejercicios y cursos |
+| [docs/TODO.md](docs/TODO.md) | Próximos pasos y mejoras pendientes |
+| [CHANGELOG.md](CHANGELOG.md) | Historial de cambios |
+
+---
+
+## 🎮 Flujo de Usuario
+
+```
+Home → Cursos → Detalle Curso → Ejercicio → Resultados
+  │
+  └── Diagnóstico → Test de Nivel → Recomendaciones
+```
+
+1. **Home**: Ver stats, continuar práctica, acceder a cursos
+2. **Cursos**: Elegir curso según nivel y categoría
+3. **Ejercicio**: Practicar con metrónomo y feedback en tiempo real
+4. **Resultados**: Ver puntuación, desglose y tips para mejorar
+
+---
+
+## 🎸 Contenido Incluido
+
+### Cursos
+- **Fundamentos de Timing** (10 ejercicios) - Pulso, corcheas, silencios, síncopa
+- **Primeras Notas** (8 ejercicios) - Cuerdas al aire, trastes, melodía simple
+
+### Ejercicios de Diagnóstico
+- Timing básico e intermedio
+- Notas básico e intermedio
+
+---
+
+## 🔧 Tecnologías
+
+- **Flutter 3.16+** - Framework multiplataforma
+- **Riverpod** - State management reactivo
+- **SQLite** - Persistencia local
+- **flutter_sound** - Captura de audio
+- **fftea** - Análisis FFT para detección de pitch
+
+---
+
+## 📱 Servicios Core
+
+| Servicio | Función |
+|----------|---------|
+| `ExerciseEvaluationService` | Evaluación de ejercicios en tiempo real |
+| `CourseProgressService` | Gestión de cursos y progreso |
+| `AIFeedbackService` | Generación de tips (reglas/MVP) |
+| `DiagnosticService` | Test de nivel |
+| `RealTimeAudioAnalysisService` | Detección de pitch y análisis de audio |
+
+---
+
+## 🔮 Roadmap
+
+- [ ] **Fase 6**: Integración LLM para feedback personalizado
+- [ ] **Acordes**: Ejercicios de cambio de acordes
+- [ ] **Técnicas**: Hammer-on, pull-off, bends
+- [ ] **Gamificación**: Logros y recompensas
+
+---
+
+## 📄 Licencia
+
+Proyecto privado - Todos los derechos reservados
+
+---
+
+**Desarrollado con ❤️ para guitarristas**
 *GuitarrApp - Aprende tocando, no solo mirando* 🎸

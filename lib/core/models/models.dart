@@ -1,4 +1,5 @@
-export 'user_setup.dart';
-export 'song_riff.dart';
-export 'session.dart';
-export 'tone_preset.dart';
+// Domain Models for GuitarrApp Arcade MVP
+// This file exports all data models
+
+// Chord data for the arcade game
+export '../data/chords_data.dart';

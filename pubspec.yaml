@@ -38,6 +38,7 @@ dependencies:
   # Utils
   intl: ^0.19.0
   equatable: ^2.0.5
+  uuid: ^4.2.1
   
   # HTTP & API
   http: ^1.2.0
@@ -75,8 +76,8 @@ flutter:
   assets:
     - assets/images/
     - assets/audio/
-    - assets/audio/backing_tracks/
     - assets/data/
+    - assets/data/exercises/
     # .env removido por seguridad - credenciales ahora en almacenamiento seguro
     
   # Fonts (commented out until assets are available)
