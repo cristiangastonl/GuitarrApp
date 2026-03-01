@@ -11,6 +11,8 @@ class PreferencesHelper {
   static const String _keyAutoplay = 'autoplay_enabled';
   static const String _keyDefaultTimeSignature = 'default_time_signature';
   static const String _keyQuickStartEnabled = 'quick_start_enabled';
+  static const String _keyOnboardingCompleted = 'onboarding_completed';
+  static const String _keySkillLevel = 'skill_level';
 
   static SharedPreferences? _prefs;
 
@@ -116,6 +118,28 @@ class PreferencesHelper {
   static Future<void> setDefaultTimeSignature(int timeSignature) async {
     final prefs = await _preferences;
     await prefs.setInt(_keyDefaultTimeSignature, timeSignature);
+  }
+
+  // Onboarding
+  static Future<bool> isOnboardingCompleted() async {
+    final prefs = await _preferences;
+    return prefs.getBool(_keyOnboardingCompleted) ?? false;
+  }
+
+  static Future<void> setOnboardingCompleted() async {
+    final prefs = await _preferences;
+    await prefs.setBool(_keyOnboardingCompleted, true);
+  }
+
+  // Skill level: 'principiante', 'intermedio', 'avanzado'
+  static Future<String> getSkillLevel() async {
+    final prefs = await _preferences;
+    return prefs.getString(_keySkillLevel) ?? 'principiante';
+  }
+
+  static Future<void> setSkillLevel(String level) async {
+    final prefs = await _preferences;
+    await prefs.setString(_keySkillLevel, level);
   }
 
   // Quick start enabled

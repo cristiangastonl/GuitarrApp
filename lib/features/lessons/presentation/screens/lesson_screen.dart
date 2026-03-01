@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/arcade_theme.dart';
 import '../../../../core/data/chords_data.dart';
 import '../../../../core/audio/mobile_audio_capture.dart';
+import '../../../../core/services/gemini_coach_service.dart';
 import '../../../../widgets/neon_text.dart';
 import '../../../../widgets/arcade_button.dart';
 import '../../../../widgets/chord_diagram.dart';
@@ -23,20 +24,23 @@ class LessonScreen extends ConsumerStatefulWidget {
 class _LessonScreenState extends ConsumerState<LessonScreen>
     with SingleTickerProviderStateMixin {
   final _audioService = MobileAudioCaptureService();
+  final _geminiCoach = GeminiCoachService();
   StreamSubscription<AudioCaptureData>? _audioSubscription;
   bool _showFeedback = false;
   String _feedbackText = '';
   Color _feedbackColor = ArcadeColors.neonGreen;
   int _feedbackPoints = 0;
+  String? _aiFeedbackText;
 
   @override
   void initState() {
     super.initState();
-    _initAudio();
+    _initServices();
   }
 
-  Future<void> _initAudio() async {
+  Future<void> _initServices() async {
     await _audioService.initialize();
+    _geminiCoach.initialize();
   }
 
   @override
@@ -104,12 +108,36 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
       _feedbackColor = FeedbackColors.fromAccuracy(accuracy);
       _feedbackPoints = FeedbackColors.pointsFromAccuracy(accuracy) *
           (state.combo > 0 ? state.combo : 1);
+      _aiFeedbackText = null;
     });
 
-    // Hide feedback after delay
-    Future.delayed(const Duration(milliseconds: 1000), () {
+    // Fire-and-forget AI feedback
+    _geminiCoach
+        .getFeedback(
+      chordName: state.chord.name,
+      accuracy: accuracy,
+      simpleFeedback: state.lastFeedback ?? '',
+      combo: state.combo,
+      currentAttempt: state.currentAttempt,
+      totalAttempts: state.totalAttempts,
+      averageAccuracy: state.averageAccuracy,
+    )
+        .then((aiFeedback) {
+      if (mounted && _showFeedback && aiFeedback != null) {
+        setState(() => _aiFeedbackText = aiFeedback);
+        ref
+            .read(lessonGameProvider(widget.level).notifier)
+            .setAiFeedback(aiFeedback);
+      }
+    });
+
+    // Hide feedback after delay (extended to 2.5s for AI response)
+    Future.delayed(const Duration(milliseconds: 2500), () {
       if (mounted) {
-        setState(() => _showFeedback = false);
+        setState(() {
+          _showFeedback = false;
+          _aiFeedbackText = null;
+        });
 
         // Check if level complete
         final currentState = ref.read(lessonGameProvider(widget.level));
@@ -248,7 +276,7 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
             if (_showFeedback)
               Positioned.fill(
                 child: Container(
-                  color: _feedbackColor.withOpacity(0.2),
+                  color: _feedbackColor.withValues(alpha: 0.2),
                   child: Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -267,6 +295,26 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
                               color: ArcadeColors.neonYellow,
                               shadows: NeonEffects.textGlow(
                                 ArcadeColors.neonYellow,
+                              ),
+                            ),
+                          ),
+                        ],
+                        if (_aiFeedbackText != null) ...[
+                          const SizedBox(height: 16),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 32),
+                            child: Text(
+                              _aiFeedbackText!,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: ArcadeColors.textPrimary.withValues(alpha: 0.9),
+                                fontStyle: FontStyle.italic,
+                                height: 1.4,
+                                shadows: NeonEffects.textGlow(
+                                  _feedbackColor,
+                                  intensity: 0.3,
+                                ),
                               ),
                             ),
                           ),
@@ -434,7 +482,7 @@ class _LevelCompleteDialog extends StatelessWidget {
               decoration: BoxDecoration(
                 color: ArcadeColors.background,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: ArcadeColors.neonCyan.withOpacity(0.3)),
+                border: Border.all(color: ArcadeColors.neonCyan.withValues(alpha: 0.3)),
               ),
               child: Column(
                 children: [

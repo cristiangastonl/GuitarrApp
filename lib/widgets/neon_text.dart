@@ -85,7 +85,7 @@ class _NeonTextState extends State<NeonText>
       style: TextStyle(
         fontSize: widget.fontSize,
         fontWeight: widget.fontWeight,
-        color: widget.color.withOpacity(intensity),
+        color: widget.color.withValues(alpha: intensity),
         letterSpacing: 2,
         shadows: NeonEffects.textGlow(widget.color, intensity: intensity),
       ),

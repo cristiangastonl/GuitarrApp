@@ -106,6 +106,14 @@ class MobileAudioCaptureService {
         androidWillPauseWhenDucked: true,
       ));
 
+      // Close previous recorder if exists (clean up stale state)
+      if (_recorder != null) {
+        try {
+          await _recorder!.closeRecorder();
+        } catch (_) {}
+        _recorder = null;
+      }
+
       // Create and open the recorder
       _recorder = FlutterSoundRecorder();
       await _recorder!.openRecorder();
@@ -133,6 +141,14 @@ class MobileAudioCaptureService {
     }
 
     try {
+      // Stop any previous capture cleanly
+      if (_recordingDataController != null) {
+        try {
+          await _recordingDataController!.close();
+        } catch (_) {}
+        _recordingDataController = null;
+      }
+
       // Clear buffer
       _audioBuffer.clear();
 
@@ -393,19 +409,24 @@ class MobileAudioCaptureService {
   }
 
   /// Stop capturing audio
-  void stopCapture() {
+  Future<void> stopCapture() async {
     if (!_isCapturing) return;
+    _isCapturing = false;
 
     try {
-      _recorder?.stopRecorder();
-      _recordingDataController?.close();
-      _recordingDataController = null;
-      _audioBuffer.clear();
-      _isCapturing = false;
-      _log('Mobile audio capture stopped');
+      if (_recorder != null && _recorder!.isRecording) {
+        await _recorder!.stopRecorder();
+      }
     } catch (e) {
-      _log('Error stopping mobile audio capture: $e');
+      _log('Error stopping recorder: $e');
     }
+
+    try {
+      await _recordingDataController?.close();
+    } catch (_) {}
+    _recordingDataController = null;
+    _audioBuffer.clear();
+    _log('Mobile audio capture stopped');
   }
 
   /// Dispose resources

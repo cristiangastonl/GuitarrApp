@@ -217,7 +217,7 @@ class _ChordDiagramPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     final glowPaint = Paint()
-      ..color = ArcadeColors.neonGreen.withOpacity(0.3)
+      ..color = ArcadeColors.neonGreen.withValues(alpha: 0.3)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
 
     // Glow effect
@@ -271,7 +271,7 @@ class ChordDiagramMini extends StatelessWidget {
       decoration: BoxDecoration(
         color: ArcadeColors.backgroundLight,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: ArcadeColors.neonCyan.withOpacity(0.5)),
+        border: Border.all(color: ArcadeColors.neonCyan.withValues(alpha: 0.5)),
       ),
       child: Center(
         child: Text(

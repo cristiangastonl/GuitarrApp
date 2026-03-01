@@ -121,7 +121,7 @@ class _ArcadeButtonState extends State<ArcadeButton>
   @override
   Widget build(BuildContext context) {
     final effectiveColor =
-        widget.enabled ? widget.color : widget.color.withOpacity(0.3);
+        widget.enabled ? widget.color : widget.color.withValues(alpha: 0.3);
 
     return GestureDetector(
       onTapDown: _onTapDown,
@@ -165,7 +165,7 @@ class _ArcadeButtonState extends State<ArcadeButton>
                         fontWeight: FontWeight.bold,
                         color: widget.enabled
                             ? widget.textColor
-                            : widget.textColor.withOpacity(0.5),
+                            : widget.textColor.withValues(alpha: 0.5),
                         letterSpacing: 2,
                       ),
                     ),
@@ -245,7 +245,7 @@ class _ArcadeOutlineButtonState extends State<ArcadeButton>
   @override
   Widget build(BuildContext context) {
     final effectiveColor =
-        widget.enabled ? widget.color : widget.color.withOpacity(0.3);
+        widget.enabled ? widget.color : widget.color.withValues(alpha: 0.3);
 
     return GestureDetector(
       onTapDown: _onTapDown,

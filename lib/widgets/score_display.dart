@@ -264,7 +264,7 @@ class LevelProgressBar extends StatelessWidget {
           decoration: BoxDecoration(
             color: ArcadeColors.backgroundLight,
             borderRadius: BorderRadius.circular(height / 2),
-            border: Border.all(color: ArcadeColors.neonCyan.withOpacity(0.3)),
+            border: Border.all(color: ArcadeColors.neonCyan.withValues(alpha: 0.3)),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(height / 2),

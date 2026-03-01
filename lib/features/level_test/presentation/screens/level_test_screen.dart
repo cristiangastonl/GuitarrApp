@@ -255,7 +255,7 @@ class _LevelTestScreenState extends ConsumerState<LevelTestScreen> {
               Positioned.fill(
                 child: Container(
                   color: (_lastResult ? ArcadeColors.neonGreen : ArcadeColors.neonRed)
-                      .withOpacity(0.3),
+                      .withValues(alpha: 0.3),
                   child: Center(
                     child: Icon(
                       _lastResult ? Icons.check_circle : Icons.cancel,
@@ -425,8 +425,8 @@ class _TestCompleteDialog extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: correct
-                        ? ArcadeColors.neonGreen.withOpacity(0.2)
-                        : ArcadeColors.neonRed.withOpacity(0.2),
+                        ? ArcadeColors.neonGreen.withValues(alpha: 0.2)
+                        : ArcadeColors.neonRed.withValues(alpha: 0.2),
                     border: Border.all(
                       color: correct
                           ? ArcadeColors.neonGreen
@@ -454,7 +454,7 @@ class _TestCompleteDialog extends StatelessWidget {
                 color: ArcadeColors.background,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: ArcadeColors.neonGreen.withOpacity(0.5),
+                  color: ArcadeColors.neonGreen.withValues(alpha: 0.5),
                 ),
               ),
               child: Text(

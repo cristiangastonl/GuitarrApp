@@ -168,12 +168,12 @@ class NeonEffects {
   static List<BoxShadow> glow(Color color, {double intensity = 1.0}) {
     return [
       BoxShadow(
-        color: color.withOpacity(0.6 * intensity),
+        color: color.withValues(alpha: 0.6 * intensity),
         blurRadius: 15 * intensity,
         spreadRadius: 2 * intensity,
       ),
       BoxShadow(
-        color: color.withOpacity(0.3 * intensity),
+        color: color.withValues(alpha: 0.3 * intensity),
         blurRadius: 30 * intensity,
         spreadRadius: 5 * intensity,
       ),
@@ -184,11 +184,11 @@ class NeonEffects {
   static List<Shadow> textGlow(Color color, {double intensity = 1.0}) {
     return [
       Shadow(
-        color: color.withOpacity(0.8 * intensity),
+        color: color.withValues(alpha: 0.8 * intensity),
         blurRadius: 10 * intensity,
       ),
       Shadow(
-        color: color.withOpacity(0.5 * intensity),
+        color: color.withValues(alpha: 0.5 * intensity),
         blurRadius: 20 * intensity,
       ),
     ];

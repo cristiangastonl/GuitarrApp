@@ -16,6 +16,7 @@ class LessonGameState {
   final bool isComplete;
   final String? lastFeedback;
   final double? lastAccuracy;
+  final String? aiFeedback;
 
   const LessonGameState({
     required this.chord,
@@ -29,6 +30,7 @@ class LessonGameState {
     this.isComplete = false,
     this.lastFeedback,
     this.lastAccuracy,
+    this.aiFeedback,
   });
 
   double get averageAccuracy {
@@ -56,6 +58,7 @@ class LessonGameState {
     bool? isComplete,
     String? lastFeedback,
     double? lastAccuracy,
+    String? aiFeedback,
   }) {
     return LessonGameState(
       chord: chord ?? this.chord,
@@ -69,6 +72,7 @@ class LessonGameState {
       isComplete: isComplete ?? this.isComplete,
       lastFeedback: lastFeedback,
       lastAccuracy: lastAccuracy,
+      aiFeedback: aiFeedback,
     );
   }
 }
@@ -122,6 +126,10 @@ class LessonGameNotifier extends StateNotifier<LessonGameState> {
       lastFeedback: feedback,
       lastAccuracy: accuracy,
     );
+  }
+
+  void setAiFeedback(String feedback) {
+    state = state.copyWith(aiFeedback: feedback);
   }
 
   /// Reset the game

@@ -43,6 +43,9 @@ dependencies:
   # HTTP & API
   http: ^1.2.0
   flutter_dotenv: ^5.2.1
+
+  # AI
+  google_generative_ai: ^0.4.6
   
   # Firebase & Authentication
   firebase_core: ^3.7.0
@@ -78,7 +81,7 @@ flutter:
     - assets/audio/
     - assets/data/
     - assets/data/exercises/
-    # .env removido por seguridad - credenciales ahora en almacenamiento seguro
+    - .env
     
   # Fonts (commented out until assets are available)
   # fonts:

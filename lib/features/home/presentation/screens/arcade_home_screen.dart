@@ -187,10 +187,10 @@ class ArcadeHomeScreen extends ConsumerWidget {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: ArcadeColors.neonCyan.withOpacity(0.2),
+                            color: ArcadeColors.neonCyan.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: ArcadeColors.neonCyan.withOpacity(0.5),
+                              color: ArcadeColors.neonCyan.withValues(alpha: 0.5),
                             ),
                           ),
                           child: Center(

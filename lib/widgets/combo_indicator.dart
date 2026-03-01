@@ -268,7 +268,7 @@ class StreakIndicator extends StatelessWidget {
       decoration: BoxDecoration(
         color: ArcadeColors.backgroundLight,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: ArcadeColors.neonOrange.withOpacity(0.5)),
+        border: Border.all(color: ArcadeColors.neonOrange.withValues(alpha: 0.5)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
