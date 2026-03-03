@@ -131,6 +131,11 @@ class PreferencesHelper {
     await prefs.setBool(_keyOnboardingCompleted, true);
   }
 
+  static Future<void> setOnboardingNotCompleted() async {
+    final prefs = await _preferences;
+    await prefs.setBool(_keyOnboardingCompleted, false);
+  }
+
   // Skill level: 'principiante', 'intermedio', 'avanzado'
   static Future<String> getSkillLevel() async {
     final prefs = await _preferences;

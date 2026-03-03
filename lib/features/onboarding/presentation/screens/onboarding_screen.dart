@@ -51,6 +51,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
+  void _previousPage() {
+    final current = _pageController.page?.round() ?? 0;
+    if (current > 0) {
+      _goToPage(current - 1);
+    }
+  }
+
   Future<void> _completeOnboarding() async {
     await ref.read(onboardingProvider.notifier).completeOnboarding();
     if (mounted) {
@@ -119,6 +126,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // Back button (visible from page 1 onwards)
+            if (state.currentPage > 0)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8, top: 8),
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back, color: ArcadeColors.neonCyan),
+                    onPressed: _previousPage,
+                  ),
+                ),
+              ),
             Expanded(
               child: PageView(
                 controller: _pageController,

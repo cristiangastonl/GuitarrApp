@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/arcade_theme.dart';
 import '../../../../core/data/chords_data.dart';
+import '../../../../core/storage/preferences_helper.dart';
 import '../../../../widgets/neon_text.dart';
 import '../../../../widgets/arcade_button.dart';
 import '../../../lessons/presentation/providers/game_provider.dart';
 import '../../../lessons/presentation/screens/lesson_list_screen.dart';
 import '../../../level_test/presentation/screens/level_test_screen.dart';
+import '../../../onboarding/presentation/screens/onboarding_screen.dart';
 
 class ArcadeHomeScreen extends ConsumerWidget {
   const ArcadeHomeScreen({super.key});
@@ -86,6 +88,23 @@ class ArcadeHomeScreen extends ConsumerWidget {
                 icon: Icons.leaderboard,
                 onPressed: () {
                   _showHighScores(context, progress);
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              ArcadeButton.outline(
+                text: 'TUTORIAL',
+                icon: Icons.school,
+                onPressed: () async {
+                  await PreferencesHelper.setOnboardingNotCompleted();
+                  if (context.mounted) {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        builder: (_) => const OnboardingScreen(),
+                      ),
+                    );
+                  }
                 },
               ),
 
