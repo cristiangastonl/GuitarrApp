@@ -10,6 +10,7 @@ import '../../../../widgets/arcade_button.dart';
 import '../../../../widgets/chord_diagram.dart';
 import '../../../../widgets/score_display.dart';
 import '../../../../widgets/combo_indicator.dart';
+import '../../../../widgets/reference_panel.dart';
 import '../providers/game_provider.dart';
 
 class LessonScreen extends ConsumerStatefulWidget {
@@ -211,65 +212,73 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
       body: SafeArea(
         child: Stack(
           children: [
-            // Main content
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  // Score and combo row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      AnimatedScoreDisplay(score: state.score),
-                      ComboIndicator(combo: state.combo),
-                    ],
-                  ),
+            // Main content + reference panel
+            Column(
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      children: [
+                        // Score and combo row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            AnimatedScoreDisplay(score: state.score),
+                            ComboIndicator(combo: state.combo),
+                          ],
+                        ),
 
-                  const SizedBox(height: 24),
+                        const SizedBox(height: 24),
 
-                  // Chord name
-                  NeonText(
-                    text: 'ACORDE ${chord.name}',
-                    fontSize: 24,
-                    color: ArcadeColors.neonCyan,
-                  ),
+                        // Chord name
+                        NeonText(
+                          text: 'ACORDE ${chord.name}',
+                          fontSize: 24,
+                          color: ArcadeColors.neonCyan,
+                        ),
 
-                  const SizedBox(height: 16),
+                        const SizedBox(height: 16),
 
-                  // Chord diagram
-                  Expanded(
-                    child: Center(
-                      child: ChordDiagram(
-                        chord: chord,
-                        width: 220,
-                        height: 280,
-                      ),
+                        // Chord diagram
+                        Expanded(
+                          child: Center(
+                            child: ChordDiagram(
+                              chord: chord,
+                              width: 220,
+                              height: 280,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Progress bar
+                        LevelProgressBar(
+                          current: state.currentAttempt,
+                          total: state.totalAttempts,
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Play button
+                        if (!state.isComplete)
+                          ArcadeButton(
+                            text: state.isListening ? 'ESCUCHANDO...' : 'TOCAR',
+                            icon: state.isListening ? Icons.mic : Icons.play_arrow,
+                            color: state.isListening
+                                ? ArcadeColors.neonCyan
+                                : ArcadeColors.neonGreen,
+                            onPressed: state.isListening ? null : _startListening,
+                            enabled: !state.isListening,
+                          ),
+                      ],
                     ),
                   ),
-
-                  const SizedBox(height: 16),
-
-                  // Progress bar
-                  LevelProgressBar(
-                    current: state.currentAttempt,
-                    total: state.totalAttempts,
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Play button
-                  if (!state.isComplete)
-                    ArcadeButton(
-                      text: state.isListening ? 'ESCUCHANDO...' : 'TOCAR',
-                      icon: state.isListening ? Icons.mic : Icons.play_arrow,
-                      color: state.isListening
-                          ? ArcadeColors.neonCyan
-                          : ArcadeColors.neonGreen,
-                      onPressed: state.isListening ? null : _startListening,
-                      enabled: !state.isListening,
-                    ),
-                ],
-              ),
+                ),
+                // Reference panel at bottom
+                const ReferencePanel(),
+              ],
             ),
 
             // Feedback overlay
@@ -378,8 +387,8 @@ class _ListeningWavesState extends State<_ListeningWaves>
               ')',
               style: TextStyle(
                 fontSize: 24,
-                color: ArcadeColors.neonCyan.withOpacity(
-                  0.3 + 0.7 * (((_controller.value * 3) % 1) > 0.5 ? 1 : 0),
+                color: ArcadeColors.neonCyan.withValues(
+                  alpha: 0.3 + 0.7 * (((_controller.value * 3) % 1) > 0.5 ? 1 : 0),
                 ),
               ),
             ),
@@ -387,8 +396,8 @@ class _ListeningWavesState extends State<_ListeningWaves>
               '))',
               style: TextStyle(
                 fontSize: 24,
-                color: ArcadeColors.neonCyan.withOpacity(
-                  0.3 + 0.7 * (((_controller.value * 3 + 0.33) % 1) > 0.5 ? 1 : 0),
+                color: ArcadeColors.neonCyan.withValues(
+                  alpha: 0.3 + 0.7 * (((_controller.value * 3 + 0.33) % 1) > 0.5 ? 1 : 0),
                 ),
               ),
             ),
@@ -399,8 +408,8 @@ class _ListeningWavesState extends State<_ListeningWaves>
               '((',
               style: TextStyle(
                 fontSize: 24,
-                color: ArcadeColors.neonCyan.withOpacity(
-                  0.3 + 0.7 * (((_controller.value * 3 + 0.33) % 1) > 0.5 ? 1 : 0),
+                color: ArcadeColors.neonCyan.withValues(
+                  alpha: 0.3 + 0.7 * (((_controller.value * 3 + 0.33) % 1) > 0.5 ? 1 : 0),
                 ),
               ),
             ),
@@ -408,8 +417,8 @@ class _ListeningWavesState extends State<_ListeningWaves>
               '(',
               style: TextStyle(
                 fontSize: 24,
-                color: ArcadeColors.neonCyan.withOpacity(
-                  0.3 + 0.7 * (((_controller.value * 3) % 1) > 0.5 ? 1 : 0),
+                color: ArcadeColors.neonCyan.withValues(
+                  alpha: 0.3 + 0.7 * (((_controller.value * 3) % 1) > 0.5 ? 1 : 0),
                 ),
               ),
             ),

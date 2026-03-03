@@ -9,6 +9,9 @@ import '../../../lessons/presentation/providers/game_provider.dart';
 import '../../../lessons/presentation/screens/lesson_list_screen.dart';
 import '../../../level_test/presentation/screens/level_test_screen.dart';
 import '../../../onboarding/presentation/screens/onboarding_screen.dart';
+import '../../../tutorial/presentation/screens/tutorial_screen.dart';
+import '../../../chord_explorer/presentation/screens/chord_explorer_screen.dart';
+import '../../../feedback/presentation/screens/feedback_screen.dart';
 
 class ArcadeHomeScreen extends ConsumerWidget {
   const ArcadeHomeScreen({super.key});
@@ -20,131 +23,178 @@ class ArcadeHomeScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: ArcadeColors.background,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Spacer(flex: 2),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 16),
 
-              // Title
-              const NeonText(
-                text: 'GUITARR',
-                fontSize: 36,
-                color: ArcadeColors.neonPink,
-                animate: true,
-                blinkDuration: Duration(milliseconds: 2000),
-              ),
-              const NeonText(
-                text: 'APP',
-                fontSize: 36,
-                color: ArcadeColors.neonCyan,
-              ),
+                // Title
+                const NeonText(
+                  text: 'GUITARR',
+                  fontSize: 36,
+                  color: ArcadeColors.neonPink,
+                  animate: true,
+                  blinkDuration: Duration(milliseconds: 2000),
+                ),
+                const NeonText(
+                  text: 'APP',
+                  fontSize: 36,
+                  color: ArcadeColors.neonCyan,
+                ),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 12),
 
-              // Guitar emoji
-              const Text(
-                '🎸',
-                style: TextStyle(fontSize: 64),
-              ),
+                // Guitar emoji
+                const Text(
+                  '🎸',
+                  style: TextStyle(fontSize: 48),
+                ),
 
-              const Spacer(),
+                const SizedBox(height: 24),
 
-              // Menu buttons
-              ArcadeButton(
-                text: 'NUEVO JUEGO',
-                icon: Icons.play_arrow,
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const LevelTestScreen(),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 16),
-
-              ArcadeButton.secondary(
-                text: 'CONTINUAR',
-                icon: Icons.sports_esports,
-                onPressed: progress.unlockedLevel > 0
-                    ? () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const LessonListScreen(),
-                          ),
-                        );
-                      }
-                    : null,
-                enabled: progress.unlockedLevel > 0,
-              ),
-
-              const SizedBox(height: 16),
-
-              ArcadeButton.outline(
-                text: 'HIGH SCORES',
-                icon: Icons.leaderboard,
-                onPressed: () {
-                  _showHighScores(context, progress);
-                },
-              ),
-
-              const SizedBox(height: 16),
-
-              ArcadeButton.outline(
-                text: 'TUTORIAL',
-                icon: Icons.school,
-                onPressed: () async {
-                  await PreferencesHelper.setOnboardingNotCompleted();
-                  if (context.mounted) {
-                    Navigator.of(context).pushReplacement(
+                // Menu buttons
+                ArcadeButton(
+                  text: 'NUEVO JUEGO',
+                  icon: Icons.play_arrow,
+                  onPressed: () {
+                    Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => const OnboardingScreen(),
+                        builder: (_) => const LevelTestScreen(),
                       ),
                     );
-                  }
-                },
-              ),
-
-              const Spacer(),
-
-              // High score display
-              if (progress.totalHighScore > 0) ...[
-                Text(
-                  'HIGH SCORE',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: ArcadeColors.textSecondary,
-                    letterSpacing: 2,
-                  ),
+                  },
+                  height: 48,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  _formatScore(progress.totalHighScore),
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'monospace',
-                    color: ArcadeColors.neonYellow,
-                    shadows: NeonEffects.textGlow(ArcadeColors.neonYellow),
-                  ),
+
+                const SizedBox(height: 12),
+
+                ArcadeButton.secondary(
+                  text: 'CONTINUAR',
+                  icon: Icons.sports_esports,
+                  onPressed: progress.unlockedLevel > 0
+                      ? () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const LessonListScreen(),
+                            ),
+                          );
+                        }
+                      : null,
+                  enabled: progress.unlockedLevel > 0,
+                  height: 48,
                 ),
+
+                const SizedBox(height: 12),
+
+                // Secondary row: HIGH SCORES + TUTORIAL
+                Row(
+                  children: [
+                    Expanded(
+                      child: ArcadeButton.outline(
+                        text: 'SCORES',
+                        icon: Icons.leaderboard,
+                        onPressed: () {
+                          _showHighScores(context, progress);
+                        },
+                        height: 44,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ArcadeButton.outline(
+                        text: 'TUTORIAL',
+                        icon: Icons.school,
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const TutorialScreen(),
+                            ),
+                          );
+                        },
+                        height: 44,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+                // Tertiary row: EXPLORADOR + FEEDBACK
+                Row(
+                  children: [
+                    Expanded(
+                      child: ArcadeButton.outline(
+                        text: 'EXPLORADOR',
+                        icon: Icons.explore,
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ChordExplorerScreen(),
+                            ),
+                          );
+                        },
+                        height: 44,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ArcadeButton.outline(
+                        text: 'FEEDBACK',
+                        icon: Icons.feedback,
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const FeedbackScreen(),
+                            ),
+                          );
+                        },
+                        height: 44,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                // High score display
+                if (progress.totalHighScore > 0) ...[
+                  Text(
+                    'HIGH SCORE',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: ArcadeColors.textSecondary,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatScore(progress.totalHighScore),
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace',
+                      color: ArcadeColors.neonYellow,
+                      shadows: NeonEffects.textGlow(ArcadeColors.neonYellow),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                // Insert coin text
+                const NeonText(
+                  text: 'INSERT COIN',
+                  fontSize: 14,
+                  color: ArcadeColors.textSecondary,
+                  animate: true,
+                  blinkDuration: Duration(milliseconds: 1000),
+                ),
+
                 const SizedBox(height: 16),
               ],
-
-              // Insert coin text
-              const NeonText(
-                text: 'INSERT COIN',
-                fontSize: 14,
-                color: ArcadeColors.textSecondary,
-                animate: true,
-                blinkDuration: Duration(milliseconds: 1000),
-              ),
-
-              const Spacer(),
-            ],
+            ),
           ),
         ),
       ),

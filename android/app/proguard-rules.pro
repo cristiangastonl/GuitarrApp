@@ -79,3 +79,6 @@
 # Proteger contra análisis de tiempo de ejecución
 -repackageclasses ''
 -allowaccessmodification
+
+# Play Store split compat (referenced by Flutter engine)
+-dontwarn com.google.android.play.core.**
