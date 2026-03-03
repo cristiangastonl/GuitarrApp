@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/arcade_theme.dart';
+import '../../../../core/data/chords_data.dart';
 import '../../../../core/audio/mobile_audio_capture.dart';
 import '../../../../widgets/neon_text.dart';
 import '../../../../widgets/arcade_button.dart';
@@ -17,17 +19,33 @@ class LevelTestScreen extends ConsumerStatefulWidget {
   ConsumerState<LevelTestScreen> createState() => _LevelTestScreenState();
 }
 
-class _LevelTestScreenState extends ConsumerState<LevelTestScreen> {
+class _LevelTestScreenState extends ConsumerState<LevelTestScreen>
+    with TickerProviderStateMixin {
   final _audioService = MobileAudioCaptureService();
   StreamSubscription<AudioCaptureData>? _audioSubscription;
-  Timer? _timeout;
+  Timer? _attemptTimer;
+
   bool _showResult = false;
   bool _lastResult = false;
+
+  late AnimationController _countdownAnimController;
+  late Animation<double> _countdownScale;
 
   @override
   void initState() {
     super.initState();
     _initAudio();
+    _countdownAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _countdownScale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.5, end: 1.2), weight: 50),
+      TweenSequenceItem(tween: Tween(begin: 1.2, end: 1.0), weight: 50),
+    ]).animate(CurvedAnimation(
+      parent: _countdownAnimController,
+      curve: Curves.easeOut,
+    ));
   }
 
   Future<void> _initAudio() async {
@@ -37,72 +55,106 @@ class _LevelTestScreenState extends ConsumerState<LevelTestScreen> {
   @override
   void dispose() {
     _audioSubscription?.cancel();
-    _timeout?.cancel();
+    _attemptTimer?.cancel();
     _audioService.stopCapture();
+    _countdownAnimController.dispose();
     super.dispose();
   }
 
-  void _startListening() {
+  Future<void> _startRound() async {
     final notifier = ref.read(levelTestProvider.notifier);
-    notifier.startListening();
+    notifier.setPhase(RoundPhase.countdown);
 
+    // Countdown 3 → 2 → 1
+    for (int i = 3; i >= 1; i--) {
+      notifier.setCountdown(i);
+      _countdownAnimController.forward(from: 0);
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (!mounted) return;
+    }
+
+    // "¡TOCÁ!" flash
+    notifier.setCountdown(0);
+    _countdownAnimController.forward(from: 0);
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+
+    // Open mic once
     _audioService.startCapture();
-
-    // Listen for audio data
     _audioSubscription = _audioService.audioDataStream.listen((data) {
       if (data.hasPitch) {
         _processAudioData(data);
       }
     });
 
-    // Timeout after 5 seconds
-    _timeout = Timer(const Duration(seconds: 5), () {
+    _startAttempt();
+  }
+
+  void _startAttempt() {
+    final notifier = ref.read(levelTestProvider.notifier);
+    notifier.setPhase(RoundPhase.playing);
+    notifier.startListening();
+
+    _attemptTimer?.cancel();
+    _attemptTimer = Timer(const Duration(seconds: 4), () {
       final state = ref.read(levelTestProvider);
-      if (state.isListening) {
-        _processAttempt(false); // Miss if nothing detected
+      if (state.isListening && state.roundPhase == RoundPhase.playing) {
+        _resolveAttempt(false);
       }
     });
   }
 
   void _processAudioData(AudioCaptureData data) {
     final state = ref.read(levelTestProvider);
-    if (!state.isListening) return;
+    if (!state.isListening || state.roundPhase != RoundPhase.playing) return;
 
     final chord = state.currentChord;
-    final detectedNote = data.noteName;
-
-    if (detectedNote != null && data.confidence > 0.6) {
-      // Check if detected note is in chord
-      final isCorrectNote = chord.notes.contains(detectedNote);
-
-      if (isCorrectNote) {
-        _processAttempt(true);
-      }
+    final accuracy = _matchFrequencyToChord(data.frequency, chord);
+    if (accuracy > 0) {
+      _resolveAttempt(true);
     }
   }
 
-  void _processAttempt(bool correct) {
-    _audioSubscription?.cancel();
-    _timeout?.cancel();
-    _audioService.stopCapture();
+  /// Match detected frequency against chord frequencies using cents tolerance.
+  /// Returns accuracy 0.0-1.0 (0 = no match). Tolerance: 50 cents.
+  double _matchFrequencyToChord(double freq, ChordData chord) {
+    if (freq <= 0) return 0.0;
+
+    for (final chordFreq in chord.frequencies) {
+      final cents = (1200 * math.log(freq / chordFreq) / math.ln2).abs();
+      if (cents <= 50) return 1.0;
+    }
+    return 0.0;
+  }
+
+  void _resolveAttempt(bool correct) {
+    _attemptTimer?.cancel();
 
     final notifier = ref.read(levelTestProvider.notifier);
     notifier.processAttempt(correct);
+    notifier.setPhase(RoundPhase.feedback);
 
-    // Show result briefly
     setState(() {
       _showResult = true;
       _lastResult = correct;
     });
 
+    // Feedback 0.8s → pause 0.5s → next or complete
     Future.delayed(const Duration(milliseconds: 800), () {
-      if (mounted) {
-        setState(() => _showResult = false);
+      if (!mounted) return;
+      setState(() => _showResult = false);
 
-        final state = ref.read(levelTestProvider);
-        if (state.isComplete) {
-          _showTestComplete();
-        }
+      final currentState = ref.read(levelTestProvider);
+      if (currentState.isComplete) {
+        _audioSubscription?.cancel();
+        _audioService.stopCapture();
+        notifier.setPhase(RoundPhase.complete);
+        _showTestComplete();
+      } else {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (!mounted) return;
+          _startAttempt();
+        });
       }
     });
   }
@@ -110,7 +162,6 @@ class _LevelTestScreenState extends ConsumerState<LevelTestScreen> {
   void _showTestComplete() {
     final state = ref.read(levelTestProvider);
 
-    // Unlock levels based on test result
     ref.read(gameProgressProvider.notifier).unlockFromTest(state.correctCount);
 
     showDialog(
@@ -135,6 +186,11 @@ class _LevelTestScreenState extends ConsumerState<LevelTestScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(levelTestProvider);
+    final isIdle = state.roundPhase == RoundPhase.idle;
+    final isCountdown = state.roundPhase == RoundPhase.countdown;
+    final isPlaying =
+        state.roundPhase == RoundPhase.playing ||
+        state.roundPhase == RoundPhase.feedback;
 
     return Scaffold(
       backgroundColor: ArcadeColors.background,
@@ -143,6 +199,9 @@ class _LevelTestScreenState extends ConsumerState<LevelTestScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: ArcadeColors.neonCyan),
           onPressed: () {
+            _audioSubscription?.cancel();
+            _attemptTimer?.cancel();
+            _audioService.stopCapture();
             ref.read(levelTestProvider.notifier).reset();
             Navigator.of(context).pop();
           },
@@ -183,13 +242,31 @@ class _LevelTestScreenState extends ConsumerState<LevelTestScreen> {
 
                   const SizedBox(height: 24),
 
-                  // Chord diagram
+                  // Chord diagram with glow on feedback
                   Expanded(
                     child: Center(
-                      child: ChordDiagram(
-                        chord: state.currentChord,
-                        width: 220,
-                        height: 280,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: _showResult
+                              ? [
+                                  BoxShadow(
+                                    color: (_lastResult
+                                            ? ArcadeColors.neonGreen
+                                            : ArcadeColors.neonRed)
+                                        .withValues(alpha: 0.6),
+                                    blurRadius: 24,
+                                    spreadRadius: 4,
+                                  ),
+                                ]
+                              : [],
+                        ),
+                        child: ChordDiagram(
+                          chord: state.currentChord,
+                          width: 220,
+                          height: 280,
+                        ),
                       ),
                     ),
                   ),
@@ -233,113 +310,139 @@ class _LevelTestScreenState extends ConsumerState<LevelTestScreen> {
                     }),
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 8),
 
-                  // Listen button
-                  if (!state.isComplete)
+                  // Inline feedback
+                  SizedBox(
+                    height: 32,
+                    child: AnimatedOpacity(
+                      opacity: _showResult ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 150),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            _lastResult ? Icons.check_circle : Icons.cancel,
+                            color: _lastResult
+                                ? ArcadeColors.neonGreen
+                                : ArcadeColors.neonRed,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _lastResult ? 'OK' : 'MISS',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: _lastResult
+                                  ? ArcadeColors.neonGreen
+                                  : ArcadeColors.neonRed,
+                              shadows: NeonEffects.textGlow(
+                                _lastResult
+                                    ? ArcadeColors.neonGreen
+                                    : ArcadeColors.neonRed,
+                                intensity: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // START button (only in idle)
+                  if (isIdle && !state.isComplete)
                     ArcadeButton(
-                      text: state.isListening ? 'ESCUCHANDO...' : 'ESCUCHAR',
-                      icon: state.isListening ? Icons.mic : Icons.hearing,
-                      color: state.isListening
-                          ? ArcadeColors.neonCyan
-                          : ArcadeColors.neonGreen,
-                      onPressed: state.isListening ? null : _startListening,
-                      enabled: !state.isListening,
+                      text: 'EMPEZAR',
+                      icon: Icons.play_arrow,
+                      color: ArcadeColors.neonGreen,
+                      onPressed: _startRound,
+                    ),
+
+                  // Playing indicator
+                  if (isPlaying)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.mic,
+                            color: ArcadeColors.neonCyan, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Escuchando... ${state.currentChordIndex + (state.isListening ? 0 : 0)}/${state.totalChords}',
+                          style: const TextStyle(
+                            color: ArcadeColors.neonCyan,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
                     ),
                 ],
               ),
             ),
 
-            // Result overlay
-            if (_showResult)
+            // Countdown overlay
+            if (isCountdown)
               Positioned.fill(
                 child: Container(
-                  color: (_lastResult ? ArcadeColors.neonGreen : ArcadeColors.neonRed)
-                      .withValues(alpha: 0.3),
+                  color: ArcadeColors.background.withValues(alpha: 0.85),
                   child: Center(
-                    child: Icon(
-                      _lastResult ? Icons.check_circle : Icons.cancel,
-                      size: 120,
-                      color: _lastResult
-                          ? ArcadeColors.neonGreen
-                          : ArcadeColors.neonRed,
-                      shadows: NeonEffects.textGlow(
-                        _lastResult
-                            ? ArcadeColors.neonGreen
-                            : ArcadeColors.neonRed,
-                        intensity: 1.5,
-                      ),
+                    child: AnimatedBuilder(
+                      animation: _countdownScale,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: _countdownScale.value,
+                          child: state.countdownValue > 0
+                              ? Text(
+                                  '${state.countdownValue}',
+                                  style: TextStyle(
+                                    fontSize: 120,
+                                    fontWeight: FontWeight.bold,
+                                    color: ArcadeColors.neonPink,
+                                    shadows: [
+                                      Shadow(
+                                        color: ArcadeColors.neonPink
+                                            .withValues(alpha: 0.8),
+                                        blurRadius: 40,
+                                      ),
+                                      Shadow(
+                                        color: ArcadeColors.neonPink
+                                            .withValues(alpha: 0.4),
+                                        blurRadius: 80,
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : Text(
+                                  '¡TOCÁ!',
+                                  style: TextStyle(
+                                    fontSize: 72,
+                                    fontWeight: FontWeight.bold,
+                                    color: ArcadeColors.neonGreen,
+                                    shadows: [
+                                      Shadow(
+                                        color: ArcadeColors.neonGreen
+                                            .withValues(alpha: 0.8),
+                                        blurRadius: 40,
+                                      ),
+                                      Shadow(
+                                        color: ArcadeColors.neonGreen
+                                            .withValues(alpha: 0.4),
+                                        blurRadius: 80,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                        );
+                      },
                     ),
                   ),
-                ),
-              ),
-
-            // Listening waves
-            if (state.isListening)
-              Positioned(
-                bottom: 150,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: _ListeningIndicator(),
                 ),
               ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _ListeningIndicator extends StatefulWidget {
-  @override
-  State<_ListeningIndicator> createState() => _ListeningIndicatorState();
-}
-
-class _ListeningIndicatorState extends State<_ListeningIndicator>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (int i = 0; i < 3; i++)
-              Container(
-                width: 8,
-                height: 8 + 20 * (((_controller.value * 3 + i * 0.33) % 1)),
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                decoration: BoxDecoration(
-                  color: ArcadeColors.neonCyan,
-                  borderRadius: BorderRadius.circular(4),
-                  boxShadow: NeonEffects.glow(
-                    ArcadeColors.neonCyan,
-                    intensity: 0.5,
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/arcade_theme.dart';
@@ -23,20 +24,37 @@ class LessonScreen extends ConsumerStatefulWidget {
 }
 
 class _LessonScreenState extends ConsumerState<LessonScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final _audioService = MobileAudioCaptureService();
   final _geminiCoach = GeminiCoachService();
   StreamSubscription<AudioCaptureData>? _audioSubscription;
-  bool _showFeedback = false;
-  String _feedbackText = '';
-  Color _feedbackColor = ArcadeColors.neonGreen;
-  int _feedbackPoints = 0;
-  String? _aiFeedbackText;
+  Timer? _attemptTimer;
+
+  // Inline feedback state
+  bool _showInlineFeedback = false;
+  String _inlineFeedbackText = '';
+  Color _inlineFeedbackColor = ArcadeColors.neonGreen;
+  int _inlineFeedbackPoints = 0;
+
+  // Countdown animation
+  late AnimationController _countdownAnimController;
+  late Animation<double> _countdownScale;
 
   @override
   void initState() {
     super.initState();
     _initServices();
+    _countdownAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _countdownScale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.5, end: 1.2), weight: 50),
+      TweenSequenceItem(tween: Tween(begin: 1.2, end: 1.0), weight: 50),
+    ]).animate(CurvedAnimation(
+      parent: _countdownAnimController,
+      curve: Curves.easeOut,
+    ));
   }
 
   Future<void> _initServices() async {
@@ -47,104 +65,124 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
   @override
   void dispose() {
     _audioSubscription?.cancel();
+    _attemptTimer?.cancel();
     _audioService.stopCapture();
+    _countdownAnimController.dispose();
     super.dispose();
   }
 
-  void _startListening() {
+  /// START → countdown 3-2-1-¡TOCÁ! → open mic → cycle attempts
+  Future<void> _startRound() async {
     final notifier = ref.read(lessonGameProvider(widget.level).notifier);
-    notifier.startListening();
+    notifier.setPhase(RoundPhase.countdown);
 
+    // Countdown 3 → 2 → 1
+    for (int i = 3; i >= 1; i--) {
+      notifier.setCountdown(i);
+      _countdownAnimController.forward(from: 0);
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (!mounted) return;
+    }
+
+    // "¡TOCÁ!" flash
+    notifier.setCountdown(0); // 0 = ¡TOCÁ!
+    _countdownAnimController.forward(from: 0);
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+
+    // Open mic once
     _audioService.startCapture();
-
-    // Listen for audio data
     _audioSubscription = _audioService.audioDataStream.listen((data) {
       if (data.hasPitch) {
         _processAudioData(data);
       }
     });
 
-    // Timeout after 5 seconds
-    Future.delayed(const Duration(seconds: 5), () {
+    // Start first attempt
+    _startAttempt();
+  }
+
+  void _startAttempt() {
+    final notifier = ref.read(lessonGameProvider(widget.level).notifier);
+    notifier.setPhase(RoundPhase.playing);
+    notifier.startListening();
+
+    // Timeout after 4 seconds → MISS
+    _attemptTimer?.cancel();
+    _attemptTimer = Timer(const Duration(seconds: 4), () {
       final state = ref.read(lessonGameProvider(widget.level));
-      if (state.isListening) {
-        _processAttempt(0.0); // Miss if nothing detected
+      if (state.isListening && state.roundPhase == RoundPhase.playing) {
+        _resolveAttempt(0.0);
       }
     });
   }
 
   void _processAudioData(AudioCaptureData data) {
     final state = ref.read(lessonGameProvider(widget.level));
-    if (!state.isListening) return;
+    if (!state.isListening || state.roundPhase != RoundPhase.playing) return;
 
-    // Check if the detected note matches any chord note
     final chord = state.chord;
-    final detectedNote = data.noteName;
-
-    if (detectedNote != null) {
-      // Simple chord detection: check if detected note is in chord
-      final isCorrectNote = chord.notes.contains(detectedNote);
-
-      if (isCorrectNote) {
-        // Calculate accuracy based on confidence
-        final accuracy = data.confidence.clamp(0.0, 1.0);
-        _processAttempt(accuracy);
-      }
+    final accuracy = _matchFrequencyToChord(data.frequency, chord);
+    if (accuracy > 0) {
+      _resolveAttempt(accuracy);
     }
   }
 
-  void _processAttempt(double accuracy) {
-    _audioSubscription?.cancel();
-    _audioService.stopCapture();
+  /// Match detected frequency against chord frequencies using cents tolerance.
+  /// Returns accuracy 0.0-1.0 (0 = no match, 1.0 = perfect match).
+  /// Tolerance: 50 cents (half semitone). Accuracy is proportional.
+  double _matchFrequencyToChord(double freq, ChordData chord) {
+    if (freq <= 0) return 0.0;
+
+    double bestAccuracy = 0.0;
+    for (final chordFreq in chord.frequencies) {
+      final cents = (1200 * math.log(freq / chordFreq) / math.ln2).abs();
+      if (cents <= 50) {
+        final accuracy = 1.0 - (cents / 50.0) * 0.5; // 0 cents=1.0, 50 cents=0.5
+        if (accuracy > bestAccuracy) {
+          bestAccuracy = accuracy;
+        }
+      }
+    }
+    return bestAccuracy;
+  }
+
+  void _resolveAttempt(double accuracy) {
+    _attemptTimer?.cancel();
 
     final notifier = ref.read(lessonGameProvider(widget.level).notifier);
     notifier.processAttempt(accuracy);
+    notifier.setPhase(RoundPhase.feedback);
 
     final state = ref.read(lessonGameProvider(widget.level));
 
-    // Show feedback
+    // Show inline feedback
     setState(() {
-      _showFeedback = true;
-      _feedbackText = state.lastFeedback ?? '';
-      _feedbackColor = FeedbackColors.fromAccuracy(accuracy);
-      _feedbackPoints = FeedbackColors.pointsFromAccuracy(accuracy) *
+      _showInlineFeedback = true;
+      _inlineFeedbackText = state.lastFeedback ?? '';
+      _inlineFeedbackColor = FeedbackColors.fromAccuracy(accuracy);
+      _inlineFeedbackPoints = FeedbackColors.pointsFromAccuracy(accuracy) *
           (state.combo > 0 ? state.combo : 1);
-      _aiFeedbackText = null;
     });
 
-    // Fire-and-forget AI feedback
-    _geminiCoach
-        .getFeedback(
-      chordName: state.chord.name,
-      accuracy: accuracy,
-      simpleFeedback: state.lastFeedback ?? '',
-      combo: state.combo,
-      currentAttempt: state.currentAttempt,
-      totalAttempts: state.totalAttempts,
-      averageAccuracy: state.averageAccuracy,
-    )
-        .then((aiFeedback) {
-      if (mounted && _showFeedback && aiFeedback != null) {
-        setState(() => _aiFeedbackText = aiFeedback);
-        ref
-            .read(lessonGameProvider(widget.level).notifier)
-            .setAiFeedback(aiFeedback);
-      }
-    });
+    // Feedback 0.8s → pause 0.5s → next attempt or complete
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (!mounted) return;
+      setState(() => _showInlineFeedback = false);
 
-    // Hide feedback after delay (extended to 2.5s for AI response)
-    Future.delayed(const Duration(milliseconds: 2500), () {
-      if (mounted) {
-        setState(() {
-          _showFeedback = false;
-          _aiFeedbackText = null;
+      final currentState = ref.read(lessonGameProvider(widget.level));
+      if (currentState.isComplete) {
+        // Close mic, show complete
+        _audioSubscription?.cancel();
+        _audioService.stopCapture();
+        notifier.setPhase(RoundPhase.complete);
+        _showLevelComplete();
+      } else {
+        // Pause 0.5s then next attempt
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (!mounted) return;
+          _startAttempt();
         });
-
-        // Check if level complete
-        final currentState = ref.read(lessonGameProvider(widget.level));
-        if (currentState.isComplete) {
-          _showLevelComplete();
-        }
       }
     });
   }
@@ -159,6 +197,24 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
           state.stars,
         );
 
+    // Request AI summary feedback
+    String? aiSummary;
+    _geminiCoach
+        .getSummaryFeedback(
+      chordName: state.chord.name,
+      accuracies: state.accuracies,
+      score: state.score,
+      maxCombo: state.maxCombo,
+      averageAccuracy: state.averageAccuracy,
+    )
+        .then((summary) {
+      if (summary != null) {
+        ref
+            .read(lessonGameProvider(widget.level).notifier)
+            .setAiFeedback(summary);
+      }
+    });
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -169,6 +225,7 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
         maxCombo: state.maxCombo,
         accuracy: (state.averageAccuracy * 100).round(),
         stars: state.stars,
+        gameProvider: lessonGameProvider(widget.level),
         onNext: () {
           Navigator.of(context).pop();
           if (widget.level < 10) {
@@ -178,7 +235,7 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
               ),
             );
           } else {
-            Navigator.of(context).pop(); // Back to list
+            Navigator.of(context).pop();
           }
         },
         onRetry: () {
@@ -193,6 +250,11 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
   Widget build(BuildContext context) {
     final state = ref.watch(lessonGameProvider(widget.level));
     final chord = state.chord;
+    final isIdle = state.roundPhase == RoundPhase.idle;
+    final isCountdown = state.roundPhase == RoundPhase.countdown;
+    final isPlaying =
+        state.roundPhase == RoundPhase.playing ||
+        state.roundPhase == RoundPhase.feedback;
 
     return Scaffold(
       backgroundColor: ArcadeColors.background,
@@ -200,7 +262,12 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
         backgroundColor: ArcadeColors.background,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: ArcadeColors.neonCyan),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            _audioSubscription?.cancel();
+            _attemptTimer?.cancel();
+            _audioService.stopCapture();
+            Navigator.of(context).pop();
+          },
         ),
         title: NeonText(
           text: 'NIVEL ${widget.level}',
@@ -212,7 +279,7 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
       body: SafeArea(
         child: Stack(
           children: [
-            // Main content + reference panel
+            // Main content
             Column(
               children: [
                 Expanded(
@@ -240,18 +307,40 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
 
                         const SizedBox(height: 16),
 
-                        // Chord diagram
+                        // Chord diagram with glowing border on feedback
                         Expanded(
                           child: Center(
-                            child: ChordDiagram(
-                              chord: chord,
-                              width: 220,
-                              height: 280,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: _showInlineFeedback
+                                    ? [
+                                        BoxShadow(
+                                          color: _inlineFeedbackColor
+                                              .withValues(alpha: 0.6),
+                                          blurRadius: 24,
+                                          spreadRadius: 4,
+                                        ),
+                                        BoxShadow(
+                                          color: _inlineFeedbackColor
+                                              .withValues(alpha: 0.3),
+                                          blurRadius: 48,
+                                          spreadRadius: 8,
+                                        ),
+                                      ]
+                                    : [],
+                              ),
+                              child: ChordDiagram(
+                                chord: chord,
+                                width: 220,
+                                height: 280,
+                              ),
                             ),
                           ),
                         ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 8),
 
                         // Progress bar
                         LevelProgressBar(
@@ -259,18 +348,83 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
                           total: state.totalAttempts,
                         ),
 
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 8),
 
-                        // Play button
-                        if (!state.isComplete)
+                        // Inline feedback area (fixed height to avoid layout shifts)
+                        SizedBox(
+                          height: 40,
+                          child: AnimatedOpacity(
+                            opacity: _showInlineFeedback ? 1.0 : 0.0,
+                            duration: const Duration(milliseconds: 150),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  _inlineFeedbackPoints > 0
+                                      ? Icons.check_circle
+                                      : Icons.cancel,
+                                  color: _inlineFeedbackColor,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _inlineFeedbackText,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: _inlineFeedbackColor,
+                                    shadows: NeonEffects.textGlow(
+                                      _inlineFeedbackColor,
+                                      intensity: 0.5,
+                                    ),
+                                  ),
+                                ),
+                                if (_inlineFeedbackPoints > 0) ...[
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    '+$_inlineFeedbackPoints pts',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: ArcadeColors.neonYellow,
+                                      shadows: NeonEffects.textGlow(
+                                        ArcadeColors.neonYellow,
+                                        intensity: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // START button (only in idle)
+                        if (isIdle && !state.isComplete)
                           ArcadeButton(
-                            text: state.isListening ? 'ESCUCHANDO...' : 'TOCAR',
-                            icon: state.isListening ? Icons.mic : Icons.play_arrow,
-                            color: state.isListening
-                                ? ArcadeColors.neonCyan
-                                : ArcadeColors.neonGreen,
-                            onPressed: state.isListening ? null : _startListening,
-                            enabled: !state.isListening,
+                            text: 'TOCAR',
+                            icon: Icons.play_arrow,
+                            color: ArcadeColors.neonGreen,
+                            onPressed: _startRound,
+                          ),
+
+                        // Playing indicator
+                        if (isPlaying)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.mic, color: ArcadeColors.neonCyan, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Escuchando... ${state.currentAttempt}/${state.totalAttempts}',
+                                style: const TextStyle(
+                                  color: ArcadeColors.neonCyan,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
                           ),
                       ],
                     ),
@@ -281,67 +435,67 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
               ],
             ),
 
-            // Feedback overlay
-            if (_showFeedback)
+            // Countdown overlay
+            if (isCountdown)
               Positioned.fill(
                 child: Container(
-                  color: _feedbackColor.withValues(alpha: 0.2),
+                  color: ArcadeColors.background.withValues(alpha: 0.85),
                   child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        FeedbackText(
-                          text: _feedbackText,
-                          color: _feedbackColor,
-                        ),
-                        if (_feedbackPoints > 0) ...[
-                          const SizedBox(height: 16),
-                          Text(
-                            '+$_feedbackPoints pts',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: ArcadeColors.neonYellow,
-                              shadows: NeonEffects.textGlow(
-                                ArcadeColors.neonYellow,
-                              ),
-                            ),
-                          ),
-                        ],
-                        if (_aiFeedbackText != null) ...[
-                          const SizedBox(height: 16),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 32),
-                            child: Text(
-                              _aiFeedbackText!,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: ArcadeColors.textPrimary.withValues(alpha: 0.9),
-                                fontStyle: FontStyle.italic,
-                                height: 1.4,
-                                shadows: NeonEffects.textGlow(
-                                  _feedbackColor,
-                                  intensity: 0.3,
+                    child: AnimatedBuilder(
+                      animation: _countdownScale,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: _countdownScale.value,
+                          child: state.countdownValue > 0
+                              ? Text(
+                                  '${state.countdownValue}',
+                                  style: TextStyle(
+                                    fontSize: 120,
+                                    fontWeight: FontWeight.bold,
+                                    color: ArcadeColors.neonPink,
+                                    shadows: [
+                                      Shadow(
+                                        color: ArcadeColors.neonPink
+                                            .withValues(alpha: 0.8),
+                                        blurRadius: 40,
+                                      ),
+                                      Shadow(
+                                        color: ArcadeColors.neonPink
+                                            .withValues(alpha: 0.4),
+                                        blurRadius: 80,
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '¡TOCÁ!',
+                                      style: TextStyle(
+                                        fontSize: 72,
+                                        fontWeight: FontWeight.bold,
+                                        color: ArcadeColors.neonGreen,
+                                        shadows: [
+                                          Shadow(
+                                            color: ArcadeColors.neonGreen
+                                                .withValues(alpha: 0.8),
+                                            blurRadius: 40,
+                                          ),
+                                          Shadow(
+                                            color: ArcadeColors.neonGreen
+                                                .withValues(alpha: 0.4),
+                                            blurRadius: 80,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
+                        );
+                      },
                     ),
                   ),
-                ),
-              ),
-
-            // Listening indicator
-            if (state.isListening)
-              Positioned(
-                bottom: 150,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: _ListeningWaves(),
                 ),
               ),
           ],
@@ -351,91 +505,14 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
   }
 }
 
-class _ListeningWaves extends StatefulWidget {
-  @override
-  State<_ListeningWaves> createState() => _ListeningWavesState();
-}
-
-class _ListeningWavesState extends State<_ListeningWaves>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              ')',
-              style: TextStyle(
-                fontSize: 24,
-                color: ArcadeColors.neonCyan.withValues(
-                  alpha: 0.3 + 0.7 * (((_controller.value * 3) % 1) > 0.5 ? 1 : 0),
-                ),
-              ),
-            ),
-            Text(
-              '))',
-              style: TextStyle(
-                fontSize: 24,
-                color: ArcadeColors.neonCyan.withValues(
-                  alpha: 0.3 + 0.7 * (((_controller.value * 3 + 0.33) % 1) > 0.5 ? 1 : 0),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(Icons.mic, color: ArcadeColors.neonCyan, size: 32),
-            const SizedBox(width: 8),
-            Text(
-              '((',
-              style: TextStyle(
-                fontSize: 24,
-                color: ArcadeColors.neonCyan.withValues(
-                  alpha: 0.3 + 0.7 * (((_controller.value * 3 + 0.33) % 1) > 0.5 ? 1 : 0),
-                ),
-              ),
-            ),
-            Text(
-              '(',
-              style: TextStyle(
-                fontSize: 24,
-                color: ArcadeColors.neonCyan.withValues(
-                  alpha: 0.3 + 0.7 * (((_controller.value * 3) % 1) > 0.5 ? 1 : 0),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _LevelCompleteDialog extends StatelessWidget {
+class _LevelCompleteDialog extends ConsumerWidget {
   final int level;
   final ChordData chord;
   final int score;
   final int maxCombo;
   final int accuracy;
   final int stars;
+  final StateNotifierProvider<LessonGameNotifier, LessonGameState> gameProvider;
   final VoidCallback onNext;
   final VoidCallback onRetry;
 
@@ -446,12 +523,15 @@ class _LevelCompleteDialog extends StatelessWidget {
     required this.maxCombo,
     required this.accuracy,
     required this.stars,
+    required this.gameProvider,
     required this.onNext,
     required this.onRetry,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final aiFeedback = ref.watch(gameProvider).aiFeedback;
+
     return Dialog(
       backgroundColor: ArcadeColors.backgroundLight,
       shape: RoundedRectangleBorder(
@@ -491,7 +571,8 @@ class _LevelCompleteDialog extends StatelessWidget {
               decoration: BoxDecoration(
                 color: ArcadeColors.background,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: ArcadeColors.neonCyan.withValues(alpha: 0.3)),
+                border: Border.all(
+                    color: ArcadeColors.neonCyan.withValues(alpha: 0.3)),
               ),
               child: Column(
                 children: [
@@ -504,7 +585,53 @@ class _LevelCompleteDialog extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+
+            // AI Summary feedback
+            if (aiFeedback != null)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: ArcadeColors.background,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                      color: ArcadeColors.neonPurple.withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.auto_awesome,
+                        color: ArcadeColors.neonPurple, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        aiFeedback,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: ArcadeColors.textPrimary
+                              .withValues(alpha: 0.9),
+                          fontStyle: FontStyle.italic,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: ArcadeColors.neonPurple.withValues(alpha: 0.5),
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 16),
 
             // Stars
             StarRating(stars: stars, size: 48, animated: true),
@@ -571,7 +698,8 @@ class _StatRow extends StatelessWidget {
             fontSize: 16,
             fontWeight: FontWeight.bold,
             fontFamily: 'monospace',
-            shadows: NeonEffects.textGlow(ArcadeColors.neonYellow, intensity: 0.5),
+            shadows:
+                NeonEffects.textGlow(ArcadeColors.neonYellow, intensity: 0.5),
           ),
         ),
       ],

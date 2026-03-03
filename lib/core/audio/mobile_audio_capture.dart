@@ -68,6 +68,15 @@ class MobileAudioCaptureService {
   // Buffer for accumulating audio samples
   final List<double> _audioBuffer = [];
 
+  // Adaptive noise gate
+  double _noiseFloor = 0.02;
+  int _silenceFrames = 0;
+  bool _onsetDetected = false;
+
+  // Temporal smoothing ring buffer (last 3 pitch results)
+  static const int _smoothingFrames = 3;
+  final List<_PitchResult> _recentPitches = [];
+
   /// Stream of captured audio data with pitch detection
   Stream<AudioCaptureData> get audioDataStream => _audioDataController.stream;
 
@@ -149,8 +158,12 @@ class MobileAudioCaptureService {
         _recordingDataController = null;
       }
 
-      // Clear buffer
+      // Clear buffer and smoothing state
       _audioBuffer.clear();
+      _recentPitches.clear();
+      _noiseFloor = 0.02;
+      _silenceFrames = 0;
+      _onsetDetected = false;
 
       // Create stream controller for recording data
       _recordingDataController = StreamController<Uint8List>();
@@ -195,33 +208,100 @@ class MobileAudioCaptureService {
             _audioBuffer.sublist(0, _bufferSize).toList();
         _audioBuffer.removeRange(0, _bufferSize ~/ 2); // 50% overlap
 
-        // Perform pitch detection
-        final pitchResult = _detectPitch(bufferToProcess);
+        // Calculate RMS for noise gate
+        final rms = _calculateRms(bufferToProcess);
 
-        if (pitchResult.frequency > 0 && pitchResult.confidence > 0.3) {
-          // Get note info
-          final noteInfo = _frequencyToNote(pitchResult.frequency);
+        // Adaptive noise gate
+        final gateThreshold = math.max(0.02, _noiseFloor * 2.0);
 
-          final captureData = AudioCaptureData(
-            audioSamples: Float32List.fromList(
-                bufferToProcess.map((e) => e.toDouble()).toList()),
-            sampleRate: _sampleRate,
-            frequency: pitchResult.frequency,
-            confidence: pitchResult.confidence,
-            noteName: noteInfo?.name,
-            octave: noteInfo?.octave,
-            cents: noteInfo?.cents,
-            timestamp: DateTime.now(),
-          );
+        if (rms < gateThreshold) {
+          // Silence: update noise floor with EMA
+          _silenceFrames++;
+          _noiseFloor = _noiseFloor * 0.95 + rms * 0.05;
 
-          if (captureData.hasPitch) {
-            _audioDataController.add(captureData);
+          // If we were tracking an onset, clear smoothing buffer
+          if (_onsetDetected) {
+            _onsetDetected = false;
+            _recentPitches.clear();
           }
+          return;
+        }
+
+        // Onset detection: transition from silence to sound
+        if (_silenceFrames > 3 && !_onsetDetected) {
+          _onsetDetected = true;
+          _recentPitches.clear();
+        }
+        _silenceFrames = 0;
+
+        // Perform YIN pitch detection
+        final pitchResult = _detectPitchYin(bufferToProcess);
+
+        // Add to smoothing buffer
+        _recentPitches.add(pitchResult);
+        if (_recentPitches.length > _smoothingFrames) {
+          _recentPitches.removeAt(0);
+        }
+
+        // Check if we have consistent pitches for smoothing
+        final smoothed = _getSmoothedPitch();
+        if (smoothed == null) return;
+
+        // Get note info
+        final noteInfo = _frequencyToNote(smoothed.frequency);
+
+        final captureData = AudioCaptureData(
+          audioSamples: Float32List.fromList(
+              bufferToProcess.map((e) => e.toDouble()).toList()),
+          sampleRate: _sampleRate,
+          frequency: smoothed.frequency,
+          confidence: smoothed.confidence,
+          noteName: noteInfo?.name,
+          octave: noteInfo?.octave,
+          cents: noteInfo?.cents,
+          timestamp: DateTime.now(),
+        );
+
+        if (captureData.hasPitch) {
+          _audioDataController.add(captureData);
         }
       }
     } catch (e) {
       _log('Error processing audio data: $e');
     }
+  }
+
+  /// Get smoothed pitch from recent frames.
+  /// Requires [_smoothingFrames] consecutive frames with freq > 0,
+  /// confidence > 0.5, and frequencies within 80 cents of each other.
+  _PitchResult? _getSmoothedPitch() {
+    if (_recentPitches.length < _smoothingFrames) return null;
+
+    // Check all recent pitches are valid
+    for (final p in _recentPitches) {
+      if (p.frequency <= 0 || p.confidence < 0.5) return null;
+    }
+
+    // Check all frequencies are within 80 cents of each other
+    for (int i = 0; i < _recentPitches.length; i++) {
+      for (int j = i + 1; j < _recentPitches.length; j++) {
+        final cents = 1200 *
+            (math.log(_recentPitches[i].frequency /
+                    _recentPitches[j].frequency) /
+                math.ln2)
+            .abs();
+        if (cents > 80) return null;
+      }
+    }
+
+    // Return median frequency with average confidence
+    final freqs = _recentPitches.map((p) => p.frequency).toList()..sort();
+    final medianFreq = freqs[freqs.length ~/ 2];
+    final avgConfidence =
+        _recentPitches.map((p) => p.confidence).reduce((a, b) => a + b) /
+            _recentPitches.length;
+
+    return _PitchResult(frequency: medianFreq, confidence: avgConfidence);
   }
 
   /// Convert PCM16 raw bytes to normalized float samples (-1.0 to 1.0)
@@ -239,75 +319,86 @@ class MobileAudioCaptureService {
     return samples;
   }
 
-  /// Detect pitch using autocorrelation (YIN-like algorithm)
-  _PitchResult _detectPitch(List<double> samples) {
-    // Apply window function
-    final windowedSamples = _applyHannWindow(samples);
-
-    // Calculate RMS to check if there's significant audio
-    final rms = _calculateRms(windowedSamples);
-    if (rms < 0.01) {
-      return _PitchResult(frequency: 0, confidence: 0);
-    }
-
-    // Autocorrelation-based pitch detection
-    const minPeriod = 20; // ~2200 Hz (highest guitar note)
+  /// Detect pitch using YIN algorithm.
+  /// YIN finds the first dip in the cumulative mean normalized difference
+  /// function below a threshold, which correctly identifies the fundamental
+  /// frequency instead of confusing it with harmonics.
+  _PitchResult _detectPitchYin(List<double> samples) {
+    const yinThreshold = 0.15;
+    const minPeriod = 20; // ~2200 Hz
     const maxPeriod = 1000; // ~44 Hz (lowest guitar note E2)
-
-    double bestCorrelation = 0.0;
-    int bestPeriod = minPeriod;
 
     final maxLag = math.min(maxPeriod, samples.length ~/ 2);
 
-    for (int period = minPeriod; period < maxLag; period++) {
-      double correlation = 0.0;
-      double energyA = 0.0;
-      double energyB = 0.0;
-
-      for (int i = 0; i < samples.length - period; i++) {
-        correlation += windowedSamples[i] * windowedSamples[i + period];
-        energyA += windowedSamples[i] * windowedSamples[i];
-        energyB +=
-            windowedSamples[i + period] * windowedSamples[i + period];
+    // Step 1: Difference function
+    final diff = List<double>.filled(maxLag, 0.0);
+    for (int tau = 1; tau < maxLag; tau++) {
+      double sum = 0.0;
+      for (int i = 0; i < samples.length - tau; i++) {
+        final d = samples[i] - samples[i + tau];
+        sum += d * d;
       }
+      diff[tau] = sum;
+    }
 
-      // Normalize correlation
-      final energy = math.sqrt(energyA * energyB);
-      if (energy > 0) {
-        correlation /= energy;
-      }
+    // Step 2: Cumulative mean normalized difference function (CMNDF)
+    final cmndf = List<double>.filled(maxLag, 0.0);
+    cmndf[0] = 1.0;
+    double runningSum = 0.0;
+    for (int tau = 1; tau < maxLag; tau++) {
+      runningSum += diff[tau];
+      cmndf[tau] = runningSum > 0 ? diff[tau] * tau / runningSum : 1.0;
+    }
 
-      if (correlation > bestCorrelation) {
-        bestCorrelation = correlation;
-        bestPeriod = period;
+    // Step 3: Absolute threshold - find first dip below threshold
+    int bestPeriod = -1;
+    for (int tau = minPeriod; tau < maxLag - 1; tau++) {
+      if (cmndf[tau] < yinThreshold) {
+        // Find the local minimum in this dip
+        while (tau + 1 < maxLag && cmndf[tau + 1] < cmndf[tau]) {
+          tau++;
+        }
+        bestPeriod = tau;
+        break;
       }
     }
 
-    // Refine period using parabolic interpolation
-    final refinedPeriod = _refinePeriodParabolic(
-      windowedSamples,
-      bestPeriod,
-      bestCorrelation,
-    );
+    // No period found below threshold
+    if (bestPeriod < 0) {
+      return _PitchResult(frequency: 0, confidence: 0);
+    }
 
-    final frequency =
-        bestCorrelation > 0.3 ? _sampleRate / refinedPeriod : 0.0;
-    final confidence = bestCorrelation.clamp(0.0, 1.0);
+    // Step 4: Parabolic interpolation for sub-sample accuracy
+    final refinedPeriod = _refinePeriodParabolicYin(cmndf, bestPeriod);
 
+    // Confidence = 1 - cmndf value at best period
+    final confidence = (1.0 - cmndf[bestPeriod]).clamp(0.0, 1.0);
+
+    if (confidence < 0.5) {
+      return _PitchResult(frequency: 0, confidence: 0);
+    }
+
+    final frequency = _sampleRate / refinedPeriod;
     return _PitchResult(frequency: frequency, confidence: confidence);
   }
 
-  /// Apply Hann window to reduce spectral leakage
-  List<double> _applyHannWindow(List<double> samples) {
-    final windowed = <double>[];
-    final n = samples.length;
-
-    for (int i = 0; i < n; i++) {
-      final window = 0.5 * (1 - math.cos(2 * math.pi * i / (n - 1)));
-      windowed.add(samples[i] * window);
+  /// Parabolic interpolation on CMNDF for sub-sample period refinement
+  double _refinePeriodParabolicYin(List<double> cmndf, int period) {
+    if (period <= 1 || period >= cmndf.length - 1) {
+      return period.toDouble();
     }
 
-    return windowed;
+    final alpha = cmndf[period - 1];
+    final beta = cmndf[period];
+    final gamma = cmndf[period + 1];
+
+    final denom = alpha - 2 * beta + gamma;
+    if (denom.abs() < 1e-10) {
+      return period.toDouble();
+    }
+
+    final delta = 0.5 * (alpha - gamma) / denom;
+    return period + delta;
   }
 
   /// Calculate RMS (Root Mean Square) of samples
@@ -320,48 +411,6 @@ class MobileAudioCaptureService {
     }
 
     return math.sqrt(sumOfSquares / samples.length);
-  }
-
-  /// Refine period using parabolic interpolation
-  double _refinePeriodParabolic(
-    List<double> samples,
-    int period,
-    double correlation,
-  ) {
-    if (period <= 1 || period >= samples.length ~/ 2 - 1) {
-      return period.toDouble();
-    }
-
-    // Calculate correlation at adjacent periods
-    final corrPrev = _calculateCorrelationAt(samples, period - 1);
-    final corrNext = _calculateCorrelationAt(samples, period + 1);
-
-    // Parabolic interpolation
-    final denom = corrPrev - 2 * correlation + corrNext;
-    if (denom.abs() < 1e-10) {
-      return period.toDouble();
-    }
-
-    final delta = 0.5 * (corrPrev - corrNext) / denom;
-    return period + delta;
-  }
-
-  /// Calculate autocorrelation at a specific lag
-  double _calculateCorrelationAt(List<double> samples, int lag) {
-    if (lag <= 0 || lag >= samples.length ~/ 2) return 0.0;
-
-    double correlation = 0.0;
-    double energyA = 0.0;
-    double energyB = 0.0;
-
-    for (int i = 0; i < samples.length - lag; i++) {
-      correlation += samples[i] * samples[i + lag];
-      energyA += samples[i] * samples[i];
-      energyB += samples[i + lag] * samples[i + lag];
-    }
-
-    final energy = math.sqrt(energyA * energyB);
-    return energy > 0 ? correlation / energy : 0.0;
   }
 
   /// Convert frequency to musical note information
@@ -426,6 +475,7 @@ class MobileAudioCaptureService {
     } catch (_) {}
     _recordingDataController = null;
     _audioBuffer.clear();
+    _recentPitches.clear();
     _log('Mobile audio capture stopped');
   }
 
