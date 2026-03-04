@@ -3,6 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/data/chords_data.dart';
 import '../../../../core/theme/arcade_theme.dart';
 
+/// Phase of the continuous game round
+enum RoundPhase { idle, countdown, playing, feedback, complete }
+
 /// Game state for a single lesson
 class LessonGameState {
   final ChordData chord;
@@ -17,6 +20,8 @@ class LessonGameState {
   final String? lastFeedback;
   final double? lastAccuracy;
   final String? aiFeedback;
+  final RoundPhase roundPhase;
+  final int countdownValue;
 
   const LessonGameState({
     required this.chord,
@@ -31,6 +36,8 @@ class LessonGameState {
     this.lastFeedback,
     this.lastAccuracy,
     this.aiFeedback,
+    this.roundPhase = RoundPhase.idle,
+    this.countdownValue = 3,
   });
 
   double get averageAccuracy {
@@ -59,6 +66,8 @@ class LessonGameState {
     String? lastFeedback,
     double? lastAccuracy,
     String? aiFeedback,
+    RoundPhase? roundPhase,
+    int? countdownValue,
   }) {
     return LessonGameState(
       chord: chord ?? this.chord,
@@ -73,6 +82,8 @@ class LessonGameState {
       lastFeedback: lastFeedback,
       lastAccuracy: lastAccuracy,
       aiFeedback: aiFeedback,
+      roundPhase: roundPhase ?? this.roundPhase,
+      countdownValue: countdownValue ?? this.countdownValue,
     );
   }
 }
@@ -128,6 +139,14 @@ class LessonGameNotifier extends StateNotifier<LessonGameState> {
     );
   }
 
+  void setPhase(RoundPhase phase) {
+    state = state.copyWith(roundPhase: phase);
+  }
+
+  void setCountdown(int value) {
+    state = state.copyWith(countdownValue: value);
+  }
+
   void setAiFeedback(String feedback) {
     state = state.copyWith(aiFeedback: feedback);
   }
@@ -161,6 +180,14 @@ class GameProgress {
   });
 
   bool isLevelUnlocked(int level) => level <= unlockedLevel;
+
+  /// Whether songs mode is unlocked (levels 1-5 each with ≥1 star)
+  bool get areSongsUnlocked {
+    for (int level = 1; level <= 5; level++) {
+      if ((levelStars[level] ?? 0) < 1) return false;
+    }
+    return true;
+  }
 
   int getStars(int level) => levelStars[level] ?? 0;
 
@@ -337,6 +364,8 @@ class LevelTestState {
   final bool isListening;
   final bool isComplete;
   final List<bool> results;
+  final RoundPhase roundPhase;
+  final int countdownValue;
 
   const LevelTestState({
     this.currentChordIndex = 0,
@@ -344,6 +373,8 @@ class LevelTestState {
     this.isListening = false,
     this.isComplete = false,
     this.results = const [],
+    this.roundPhase = RoundPhase.idle,
+    this.countdownValue = 3,
   });
 
   ChordData get currentChord => ChordsData.testChords[currentChordIndex];
@@ -356,6 +387,8 @@ class LevelTestState {
     bool? isListening,
     bool? isComplete,
     List<bool>? results,
+    RoundPhase? roundPhase,
+    int? countdownValue,
   }) {
     return LevelTestState(
       currentChordIndex: currentChordIndex ?? this.currentChordIndex,
@@ -363,6 +396,8 @@ class LevelTestState {
       isListening: isListening ?? this.isListening,
       isComplete: isComplete ?? this.isComplete,
       results: results ?? this.results,
+      roundPhase: roundPhase ?? this.roundPhase,
+      countdownValue: countdownValue ?? this.countdownValue,
     );
   }
 }
@@ -377,6 +412,14 @@ class LevelTestNotifier extends StateNotifier<LevelTestState> {
 
   void stopListening() {
     state = state.copyWith(isListening: false);
+  }
+
+  void setPhase(RoundPhase phase) {
+    state = state.copyWith(roundPhase: phase);
+  }
+
+  void setCountdown(int value) {
+    state = state.copyWith(countdownValue: value);
   }
 
   void processAttempt(bool correct) {

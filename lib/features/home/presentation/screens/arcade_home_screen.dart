@@ -12,6 +12,9 @@ import '../../../onboarding/presentation/screens/onboarding_screen.dart';
 import '../../../tutorial/presentation/screens/tutorial_screen.dart';
 import '../../../chord_explorer/presentation/screens/chord_explorer_screen.dart';
 import '../../../feedback/presentation/screens/feedback_screen.dart';
+import '../../../songs/presentation/providers/song_game_provider.dart';
+import '../../../songs/presentation/screens/genre_picker_screen.dart';
+import '../../../songs/presentation/screens/song_list_screen.dart';
 
 class ArcadeHomeScreen extends ConsumerWidget {
   const ArcadeHomeScreen({super.key});
@@ -19,6 +22,7 @@ class ArcadeHomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final progress = ref.watch(gameProgressProvider);
+    final songProgress = ref.watch(songProgressProvider);
 
     return Scaffold(
       backgroundColor: ArcadeColors.background,
@@ -86,6 +90,44 @@ class ArcadeHomeScreen extends ConsumerWidget {
                   enabled: progress.unlockedLevel > 0,
                   height: 48,
                 ),
+
+                const SizedBox(height: 12),
+
+                // Songs button
+                ArcadeButton.secondary(
+                  text: 'CANCIONES',
+                  icon: Icons.library_music,
+                  onPressed: progress.areSongsUnlocked
+                      ? () {
+                          if (songProgress.preferredGenre != null) {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const SongListScreen(),
+                              ),
+                            );
+                          } else {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const GenrePickerScreen(),
+                              ),
+                            );
+                          }
+                        }
+                      : null,
+                  enabled: progress.areSongsUnlocked,
+                  height: 48,
+                ),
+                if (!progress.areSongsUnlocked)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Completá niveles 1-5 para desbloquear',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: ArcadeColors.textMuted,
+                      ),
+                    ),
+                  ),
 
                 const SizedBox(height: 12),
 
