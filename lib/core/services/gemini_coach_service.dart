@@ -84,4 +84,35 @@ class GeminiCoachService {
       return null;
     }
   }
+
+  /// Get a summary AI feedback after completing all attempts in a round.
+  Future<String?> getSummaryFeedback({
+    required String chordName,
+    required List<double> accuracies,
+    required int score,
+    required int maxCombo,
+    required double averageAccuracy,
+  }) async {
+    if (_model == null) return null;
+
+    try {
+      final hits = accuracies.where((a) => a > 0).length;
+      final misses = accuracies.where((a) => a == 0).length;
+
+      final prompt =
+          'Resumen de practica del acorde $chordName. '
+          '$hits aciertos, $misses fallos de ${accuracies.length} intentos. '
+          'Precision promedio: ${(averageAccuracy * 100).round()}%. '
+          'Score: $score. Combo maximo: x$maxCombo. '
+          'Da un resumen motivacional de 2-3 oraciones con un consejo practico.';
+
+      final response = await _model!
+          .generateContent([Content.text(prompt)])
+          .timeout(const Duration(seconds: 5));
+
+      return response.text;
+    } catch (_) {
+      return null;
+    }
+  }
 }

@@ -20,6 +20,9 @@ class SongGameState {
   final String? aiFeedback;
   final RoundPhase roundPhase;
   final int countdownValue;
+  final bool isPreviewing;
+  final int previewChordIndex;
+  final bool metronomeEnabled;
 
   const SongGameState({
     required this.song,
@@ -35,6 +38,9 @@ class SongGameState {
     this.aiFeedback,
     this.roundPhase = RoundPhase.idle,
     this.countdownValue = 3,
+    this.isPreviewing = false,
+    this.previewChordIndex = 0,
+    this.metronomeEnabled = true,
   });
 
   int get totalAttempts => song.totalAttempts;
@@ -75,6 +81,9 @@ class SongGameState {
     String? aiFeedback,
     RoundPhase? roundPhase,
     int? countdownValue,
+    bool? isPreviewing,
+    int? previewChordIndex,
+    bool? metronomeEnabled,
   }) {
     return SongGameState(
       song: song ?? this.song,
@@ -90,6 +99,9 @@ class SongGameState {
       aiFeedback: aiFeedback,
       roundPhase: roundPhase ?? this.roundPhase,
       countdownValue: countdownValue ?? this.countdownValue,
+      isPreviewing: isPreviewing ?? this.isPreviewing,
+      previewChordIndex: previewChordIndex ?? this.previewChordIndex,
+      metronomeEnabled: metronomeEnabled ?? this.metronomeEnabled,
     );
   }
 }
@@ -153,6 +165,22 @@ class SongGameNotifier extends StateNotifier<SongGameState> {
 
   void setAiFeedback(String feedback) {
     state = state.copyWith(aiFeedback: feedback);
+  }
+
+  void startPreview() {
+    state = state.copyWith(isPreviewing: true, previewChordIndex: 0);
+  }
+
+  void setPreviewChord(int index) {
+    state = state.copyWith(previewChordIndex: index);
+  }
+
+  void stopPreview() {
+    state = state.copyWith(isPreviewing: false, previewChordIndex: 0);
+  }
+
+  void toggleMetronome() {
+    state = state.copyWith(metronomeEnabled: !state.metronomeEnabled);
   }
 
   void reset() {

@@ -6,6 +6,8 @@ import '../../../../core/theme/arcade_theme.dart';
 import '../../../../core/data/chords_data.dart';
 import '../../../../core/data/songs_data.dart';
 import '../../../../core/audio/mobile_audio_capture.dart';
+import '../../../../core/audio/chord_preview_service.dart';
+import '../../../../core/audio/metronome_service.dart';
 import '../../../../core/services/gemini_coach_service.dart';
 import '../../../../widgets/neon_text.dart';
 import '../../../../widgets/arcade_button.dart';
@@ -29,6 +31,8 @@ class _SongGameScreenState extends ConsumerState<SongGameScreen>
     with TickerProviderStateMixin {
   final _audioService = MobileAudioCaptureService();
   final _geminiCoach = GeminiCoachService();
+  final _previewService = ChordPreviewService();
+  final _metronomeService = MetronomeService();
   StreamSubscription<AudioCaptureData>? _audioSubscription;
   Timer? _attemptTimer;
 
@@ -72,11 +76,57 @@ class _SongGameScreenState extends ConsumerState<SongGameScreen>
     _audioSubscription?.cancel();
     _attemptTimer?.cancel();
     _audioService.stopCapture();
+    _previewService.dispose();
+    _metronomeService.dispose();
     _countdownAnimController.dispose();
     super.dispose();
   }
 
+  void _startPreview() {
+    final state = ref.read(songGameProvider(widget.songId));
+    final notifier = ref.read(songGameProvider(widget.songId).notifier);
+
+    // Build chord list from song sequence
+    final chords = <ChordData>[];
+    for (int i = 0; i < state.song.totalAttempts; i++) {
+      final chord = state.song.getChordAt(i);
+      if (chord != null) chords.add(chord);
+    }
+    if (chords.isEmpty) return;
+
+    notifier.startPreview();
+
+    final metronomeOn = ref.read(songGameProvider(widget.songId)).metronomeEnabled;
+
+    _previewService.playPreview(
+      chords: chords,
+      metronome: metronomeOn ? _metronomeService : null,
+      onChordChange: (index) {
+        if (mounted) {
+          ref
+              .read(songGameProvider(widget.songId).notifier)
+              .setPreviewChord(index);
+        }
+      },
+      onComplete: () {
+        if (mounted) {
+          ref.read(songGameProvider(widget.songId).notifier).stopPreview();
+        }
+      },
+    );
+  }
+
+  void _cancelPreview() {
+    _previewService.cancel();
+    ref.read(songGameProvider(widget.songId).notifier).stopPreview();
+  }
+
   Future<void> _startRound() async {
+    // Cancel any active preview first
+    if (_previewService.isPlaying) {
+      _cancelPreview();
+    }
+
     final notifier = ref.read(songGameProvider(widget.songId).notifier);
     notifier.setPhase(RoundPhase.countdown);
 
@@ -178,9 +228,11 @@ class _SongGameScreenState extends ConsumerState<SongGameScreen>
   }
 
   Future<void> _playMetronome() async {
+    final metronomeOn = ref.read(songGameProvider(widget.songId)).metronomeEnabled;
     for (int beat = 1; beat <= 3; beat++) {
       if (!mounted) return;
       setState(() => _metronomeBeat = beat);
+      if (metronomeOn) _metronomeService.tick();
       _countdownAnimController.forward(from: 0);
       final delay = beat < 3 ? 500 : 400;
       await Future.delayed(Duration(milliseconds: delay));
@@ -315,6 +367,7 @@ class _SongGameScreenState extends ConsumerState<SongGameScreen>
             _audioSubscription?.cancel();
             _attemptTimer?.cancel();
             _audioService.stopCapture();
+            _previewService.cancel();
             Navigator.of(context).pop();
           },
         ),
@@ -324,6 +377,22 @@ class _SongGameScreenState extends ConsumerState<SongGameScreen>
           color: ArcadeColors.neonPink,
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.music_note,
+              color: state.metronomeEnabled
+                  ? ArcadeColors.neonYellow
+                  : ArcadeColors.textMuted,
+            ),
+            tooltip: 'Metrónomo',
+            onPressed: () {
+              ref
+                  .read(songGameProvider(widget.songId).notifier)
+                  .toggleMetronome();
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: Stack(
@@ -501,13 +570,29 @@ class _SongGameScreenState extends ConsumerState<SongGameScreen>
 
                         const SizedBox(height: 16),
 
-                        // START button (only in idle)
-                        if (isIdle && !state.isComplete)
-                          ArcadeButton(
-                            text: 'TOCAR',
-                            icon: Icons.play_arrow,
-                            color: ArcadeColors.neonGreen,
-                            onPressed: _startRound,
+                        // Action buttons (only in idle)
+                        if (isIdle && !state.isComplete && !state.isPreviewing)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                child: ArcadeButton(
+                                  text: 'PREVIEW',
+                                  icon: Icons.headphones,
+                                  color: ArcadeColors.neonCyan,
+                                  onPressed: _startPreview,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: ArcadeButton(
+                                  text: 'TOCAR',
+                                  icon: Icons.play_arrow,
+                                  color: ArcadeColors.neonGreen,
+                                  onPressed: _startRound,
+                                ),
+                              ),
+                            ],
                           ),
 
                         // Playing indicator
@@ -534,6 +619,76 @@ class _SongGameScreenState extends ConsumerState<SongGameScreen>
                 const ReferencePanel(),
               ],
             ),
+
+            // Preview overlay
+            if (state.isPreviewing)
+              Positioned.fill(
+                child: Container(
+                  color: ArcadeColors.background.withValues(alpha: 0.85),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const NeonText(
+                        text: 'PREVIEW',
+                        fontSize: 28,
+                        color: ArcadeColors.neonCyan,
+                      ),
+                      const SizedBox(height: 24),
+                      // Current chord name
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: NeonText(
+                          key: ValueKey(
+                              'preview_${state.previewChordIndex}'),
+                          text: state.song
+                                  .getChordAt(state.previewChordIndex)
+                                  ?.name ??
+                              '',
+                          fontSize: 36,
+                          color: ArcadeColors.neonYellow,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // Chord diagram
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: state.song
+                                    .getChordAt(state.previewChordIndex) !=
+                                null
+                            ? ChordDiagram(
+                                key: ValueKey(
+                                    'preview_diagram_${state.previewChordIndex}'),
+                                chord: state.song
+                                    .getChordAt(state.previewChordIndex)!,
+                                width: 200,
+                                height: 260,
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                      const SizedBox(height: 16),
+                      // Progress
+                      Text(
+                        '${state.previewChordIndex + 1}/${state.song.totalAttempts}',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: ArcadeColors.textSecondary,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // Cancel button
+                      SizedBox(
+                        width: 140,
+                        child: ArcadeButton.outline(
+                          text: 'CANCELAR',
+                          onPressed: _cancelPreview,
+                          height: 40,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
             // Countdown overlay
             if (isCountdown)

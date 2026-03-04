@@ -52,6 +52,16 @@ class SongsData {
       description: 'Dos acordes que se alternan. Clásico grunge.',
     ),
     SongData(
+      id: 'polly',
+      title: 'Polly',
+      artist: 'Nirvana',
+      genre: SongGenre.rock,
+      difficulty: 1,
+      chordSequence: ['Em', 'G', 'D', 'C', 'Em', 'G', 'D', 'C', 'Em', 'G'],
+      requiredChords: ['Em', 'G', 'D', 'C'],
+      description: 'Tema acústico de Nirvana. Acordes simples y lentos.',
+    ),
+    SongData(
       id: 'knockin_on_heavens_door',
       title: "Knockin' on Heaven's Door",
       artist: 'Bob Dylan',

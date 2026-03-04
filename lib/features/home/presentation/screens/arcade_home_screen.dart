@@ -35,18 +35,33 @@ class ArcadeHomeScreen extends ConsumerWidget {
               children: [
                 const SizedBox(height: 16),
 
-                // Title
-                const NeonText(
-                  text: 'GUITARR',
-                  fontSize: 36,
-                  color: ArcadeColors.neonPink,
-                  animate: true,
-                  blinkDuration: Duration(milliseconds: 2000),
-                ),
-                const NeonText(
-                  text: 'APP',
-                  fontSize: 36,
-                  color: ArcadeColors.neonCyan,
+                // Title (long press to unlock all — debug)
+                GestureDetector(
+                  onLongPress: () {
+                    ref.read(gameProgressProvider.notifier).debugUnlockAll();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('DEBUG: Todo desbloqueado!'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  child: const Column(
+                    children: [
+                      NeonText(
+                        text: 'GUITARR',
+                        fontSize: 36,
+                        color: ArcadeColors.neonPink,
+                        animate: true,
+                        blinkDuration: Duration(milliseconds: 2000),
+                      ),
+                      NeonText(
+                        text: 'APP',
+                        fontSize: 36,
+                        color: ArcadeColors.neonCyan,
+                      ),
+                    ],
+                  ),
                 ),
 
                 const SizedBox(height: 12),

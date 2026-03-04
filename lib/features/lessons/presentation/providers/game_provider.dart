@@ -341,6 +341,24 @@ class GameProgressNotifier extends StateNotifier<GameProgress> {
     }
   }
 
+  /// Debug: unlock all levels with 1 star each
+  Future<void> debugUnlockAll() async {
+    final stars = <int, int>{};
+    final scores = <int, int>{};
+    for (int i = 1; i <= 10; i++) {
+      stars[i] = state.levelStars[i] ?? 1;
+      scores[i] = state.highScores[i] ?? 100;
+    }
+    final total = scores.values.fold(0, (a, b) => a + b);
+    state = state.copyWith(
+      levelStars: stars,
+      highScores: scores,
+      unlockedLevel: 10,
+      totalHighScore: total,
+    );
+    await _saveProgress();
+  }
+
   /// Reset all progress
   Future<void> resetProgress() async {
     state = const GameProgress();
