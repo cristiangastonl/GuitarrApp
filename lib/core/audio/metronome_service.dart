@@ -9,34 +9,32 @@ import 'package:path_provider/path_provider.dart';
 class MetronomeService {
   static const int _sampleRate = 44100;
   static const int _bitsPerSample = 16;
-  static const double _clickDuration = 0.03; // 30ms
-  static const double _clickFrequency = 1000.0; // 1kHz
+  static const double _clickDuration = 0.12; // 120ms — audible on phone speakers
+  static const double _clickFrequency = 880.0; // A5 — cuts through well
 
   final AudioPlayer _player = AudioPlayer();
-  String? _clickFilePath;
+  bool _loaded = false;
+
+  /// Pre-generate and load the click file so tick() is instant.
+  Future<void> init() async {
+    final wav = _synthesizeClick();
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/metronome_click.wav');
+    await file.writeAsBytes(wav, flush: true);
+    await _player.setFilePath(file.path);
+    await _player.setVolume(1.0);
+    _loaded = true;
+  }
 
   /// Play a single metronome click.
   Future<void> tick() async {
     try {
-      final path = await _ensureClickFile();
-      await _player.setFilePath(path);
-      await _player.setVolume(0.7);
+      if (!_loaded) await init();
       await _player.seek(Duration.zero);
       _player.play();
     } catch (e) {
       // Silent fail — don't break gameplay
     }
-  }
-
-  Future<String> _ensureClickFile() async {
-    if (_clickFilePath != null) return _clickFilePath!;
-
-    final wav = _synthesizeClick();
-    final dir = await getTemporaryDirectory();
-    final file = File('${dir.path}/metronome_click.wav');
-    await file.writeAsBytes(wav, flush: true);
-    _clickFilePath = file.path;
-    return _clickFilePath!;
   }
 
   Uint8List _synthesizeClick() {
@@ -45,9 +43,9 @@ class MetronomeService {
     final angularFreq = 2.0 * math.pi * _clickFrequency / _sampleRate;
 
     for (int i = 0; i < numSamples; i++) {
-      // Exponential decay envelope
       final t = i / _sampleRate;
-      final envelope = math.exp(-t * 150); // fast decay
+      // Sharp attack + exponential decay over 120ms
+      final envelope = math.exp(-t * 40);
       samples[i] = math.sin(angularFreq * i) * envelope;
     }
 

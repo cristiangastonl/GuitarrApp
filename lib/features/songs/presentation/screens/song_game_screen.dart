@@ -69,6 +69,7 @@ class _SongGameScreenState extends ConsumerState<SongGameScreen>
   Future<void> _initServices() async {
     await _audioService.initialize();
     _geminiCoach.initialize();
+    _metronomeService.init();
   }
 
   @override
