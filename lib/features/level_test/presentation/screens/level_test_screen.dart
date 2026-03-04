@@ -28,6 +28,9 @@ class _LevelTestScreenState extends ConsumerState<LevelTestScreen>
   bool _showResult = false;
   bool _lastResult = false;
 
+  // Metronome state (0 = hidden, 1-3 = current beat)
+  int _metronomeBeat = 0;
+
   late AnimationController _countdownAnimController;
   late Animation<double> _countdownScale;
 
@@ -139,7 +142,7 @@ class _LevelTestScreenState extends ConsumerState<LevelTestScreen>
       _lastResult = correct;
     });
 
-    // Feedback 0.8s → pause 0.5s → next or complete
+    // Feedback 0.8s → metronome → next or complete
     Future.delayed(const Duration(milliseconds: 800), () {
       if (!mounted) return;
       setState(() => _showResult = false);
@@ -151,12 +154,77 @@ class _LevelTestScreenState extends ConsumerState<LevelTestScreen>
         notifier.setPhase(RoundPhase.complete);
         _showTestComplete();
       } else {
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (!mounted) return;
-          _startAttempt();
-        });
+        _playMetronome();
       }
     });
+  }
+
+  Future<void> _playMetronome() async {
+    for (int beat = 1; beat <= 3; beat++) {
+      if (!mounted) return;
+      setState(() => _metronomeBeat = beat);
+      _countdownAnimController.forward(from: 0);
+      final delay = beat < 3 ? 500 : 400;
+      await Future.delayed(Duration(milliseconds: delay));
+    }
+    if (!mounted) return;
+    setState(() => _metronomeBeat = 0);
+    _startAttempt();
+  }
+
+  Widget _buildMetronomeBeat() {
+    final sizes = [24.0, 36.0, 48.0];
+    final alphas = [0.4, 0.7, 1.0];
+    final size = sizes[_metronomeBeat - 1];
+    final alpha = alphas[_metronomeBeat - 1];
+    final isLastBeat = _metronomeBeat == 3;
+    final color = isLastBeat ? ArcadeColors.neonGreen : ArcadeColors.neonCyan;
+
+    return AnimatedBuilder(
+      animation: _countdownScale,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _countdownScale.value,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: size,
+                height: size,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: color.withValues(alpha: alpha * 0.3),
+                  border: Border.all(color: color.withValues(alpha: alpha), width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withValues(alpha: alpha * 0.5),
+                      blurRadius: size * 0.5,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+              ),
+              if (isLastBeat) ...[
+                const SizedBox(width: 12),
+                Text(
+                  '¡TOCÁ!',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: ArcadeColors.neonGreen,
+                    shadows: NeonEffects.textGlow(
+                      ArcadeColors.neonGreen,
+                      intensity: 0.8,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _showTestComplete() {
@@ -312,42 +380,44 @@ class _LevelTestScreenState extends ConsumerState<LevelTestScreen>
 
                   const SizedBox(height: 8),
 
-                  // Inline feedback
+                  // Inline feedback / metronome area
                   SizedBox(
                     height: 32,
-                    child: AnimatedOpacity(
-                      opacity: _showResult ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 150),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            _lastResult ? Icons.check_circle : Icons.cancel,
-                            color: _lastResult
-                                ? ArcadeColors.neonGreen
-                                : ArcadeColors.neonRed,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _lastResult ? 'OK' : 'MISS',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: _lastResult
-                                  ? ArcadeColors.neonGreen
-                                  : ArcadeColors.neonRed,
-                              shadows: NeonEffects.textGlow(
-                                _lastResult
-                                    ? ArcadeColors.neonGreen
-                                    : ArcadeColors.neonRed,
-                                intensity: 0.5,
-                              ),
+                    child: _metronomeBeat > 0
+                        ? _buildMetronomeBeat()
+                        : AnimatedOpacity(
+                            opacity: _showResult ? 1.0 : 0.0,
+                            duration: const Duration(milliseconds: 150),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  _lastResult ? Icons.check_circle : Icons.cancel,
+                                  color: _lastResult
+                                      ? ArcadeColors.neonGreen
+                                      : ArcadeColors.neonRed,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _lastResult ? 'OK' : 'MISS',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: _lastResult
+                                        ? ArcadeColors.neonGreen
+                                        : ArcadeColors.neonRed,
+                                    shadows: NeonEffects.textGlow(
+                                      _lastResult
+                                          ? ArcadeColors.neonGreen
+                                          : ArcadeColors.neonRed,
+                                      intensity: 0.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                    ),
                   ),
 
                   const SizedBox(height: 16),

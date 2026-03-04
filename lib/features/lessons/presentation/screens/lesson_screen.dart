@@ -36,6 +36,9 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
   Color _inlineFeedbackColor = ArcadeColors.neonGreen;
   int _inlineFeedbackPoints = 0;
 
+  // Metronome state (0 = hidden, 1-3 = current beat)
+  int _metronomeBeat = 0;
+
   // Countdown animation
   late AnimationController _countdownAnimController;
   late Animation<double> _countdownScale;
@@ -165,26 +168,34 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
           (state.combo > 0 ? state.combo : 1);
     });
 
-    // Feedback 0.8s → pause 0.5s → next attempt or complete
+    // Feedback 0.8s → metronome → next attempt or complete
     Future.delayed(const Duration(milliseconds: 800), () {
       if (!mounted) return;
       setState(() => _showInlineFeedback = false);
 
       final currentState = ref.read(lessonGameProvider(widget.level));
       if (currentState.isComplete) {
-        // Close mic, show complete
         _audioSubscription?.cancel();
         _audioService.stopCapture();
         notifier.setPhase(RoundPhase.complete);
         _showLevelComplete();
       } else {
-        // Pause 0.5s then next attempt
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (!mounted) return;
-          _startAttempt();
-        });
+        _playMetronome();
       }
     });
+  }
+
+  Future<void> _playMetronome() async {
+    for (int beat = 1; beat <= 3; beat++) {
+      if (!mounted) return;
+      setState(() => _metronomeBeat = beat);
+      _countdownAnimController.forward(from: 0);
+      final delay = beat < 3 ? 500 : 400;
+      await Future.delayed(Duration(milliseconds: delay));
+    }
+    if (!mounted) return;
+    setState(() => _metronomeBeat = 0);
+    _startAttempt();
   }
 
   void _showLevelComplete() {
@@ -243,6 +254,61 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
           ref.read(lessonGameProvider(widget.level).notifier).reset();
         },
       ),
+    );
+  }
+
+  Widget _buildMetronomeBeat() {
+    final sizes = [24.0, 36.0, 48.0];
+    final alphas = [0.4, 0.7, 1.0];
+    final size = sizes[_metronomeBeat - 1];
+    final alpha = alphas[_metronomeBeat - 1];
+    final isLastBeat = _metronomeBeat == 3;
+    final color = isLastBeat ? ArcadeColors.neonGreen : ArcadeColors.neonCyan;
+
+    return AnimatedBuilder(
+      animation: _countdownScale,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _countdownScale.value,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: size,
+                height: size,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: color.withValues(alpha: alpha * 0.3),
+                  border: Border.all(color: color.withValues(alpha: alpha), width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withValues(alpha: alpha * 0.5),
+                      blurRadius: size * 0.5,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+              ),
+              if (isLastBeat) ...[
+                const SizedBox(width: 12),
+                Text(
+                  '¡TOCÁ!',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: ArcadeColors.neonGreen,
+                    shadows: NeonEffects.textGlow(
+                      ArcadeColors.neonGreen,
+                      intensity: 0.8,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -350,53 +416,55 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
 
                         const SizedBox(height: 8),
 
-                        // Inline feedback area (fixed height to avoid layout shifts)
+                        // Inline feedback / metronome area (fixed height)
                         SizedBox(
                           height: 40,
-                          child: AnimatedOpacity(
-                            opacity: _showInlineFeedback ? 1.0 : 0.0,
-                            duration: const Duration(milliseconds: 150),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  _inlineFeedbackPoints > 0
-                                      ? Icons.check_circle
-                                      : Icons.cancel,
-                                  color: _inlineFeedbackColor,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  _inlineFeedbackText,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: _inlineFeedbackColor,
-                                    shadows: NeonEffects.textGlow(
-                                      _inlineFeedbackColor,
-                                      intensity: 0.5,
-                                    ),
-                                  ),
-                                ),
-                                if (_inlineFeedbackPoints > 0) ...[
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    '+$_inlineFeedbackPoints pts',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: ArcadeColors.neonYellow,
-                                      shadows: NeonEffects.textGlow(
-                                        ArcadeColors.neonYellow,
-                                        intensity: 0.5,
+                          child: _metronomeBeat > 0
+                              ? _buildMetronomeBeat()
+                              : AnimatedOpacity(
+                                  opacity: _showInlineFeedback ? 1.0 : 0.0,
+                                  duration: const Duration(milliseconds: 150),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        _inlineFeedbackPoints > 0
+                                            ? Icons.check_circle
+                                            : Icons.cancel,
+                                        color: _inlineFeedbackColor,
+                                        size: 20,
                                       ),
-                                    ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        _inlineFeedbackText,
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: _inlineFeedbackColor,
+                                          shadows: NeonEffects.textGlow(
+                                            _inlineFeedbackColor,
+                                            intensity: 0.5,
+                                          ),
+                                        ),
+                                      ),
+                                      if (_inlineFeedbackPoints > 0) ...[
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          '+$_inlineFeedbackPoints pts',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: ArcadeColors.neonYellow,
+                                            shadows: NeonEffects.textGlow(
+                                              ArcadeColors.neonYellow,
+                                              intensity: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
-                                ],
-                              ],
-                            ),
-                          ),
+                                ),
                         ),
 
                         const SizedBox(height: 16),
