@@ -79,6 +79,34 @@ flutter:
   assets:
     - assets/images/
     - assets/audio/
+    - assets/audio/chords/clean/A/normal/
+    - assets/audio/chords/clean/A/soft/
+    - assets/audio/chords/clean/Am/normal/
+    - assets/audio/chords/clean/Am/soft/
+    - assets/audio/chords/clean/B/normal/
+    - assets/audio/chords/clean/B/soft/
+    - assets/audio/chords/clean/Bm/normal/
+    - assets/audio/chords/clean/Bm/soft/
+    - assets/audio/chords/clean/C/normal/
+    - assets/audio/chords/clean/C/soft/
+    - assets/audio/chords/clean/Cm/normal/
+    - assets/audio/chords/clean/Cm/soft/
+    - assets/audio/chords/clean/D/normal/
+    - assets/audio/chords/clean/D/soft/
+    - assets/audio/chords/clean/Dm/normal/
+    - assets/audio/chords/clean/Dm/soft/
+    - assets/audio/chords/clean/E/normal/
+    - assets/audio/chords/clean/E/soft/
+    - assets/audio/chords/clean/Em/normal/
+    - assets/audio/chords/clean/Em/soft/
+    - assets/audio/chords/clean/F/normal/
+    - assets/audio/chords/clean/F/soft/
+    - assets/audio/chords/clean/Fm/normal/
+    - assets/audio/chords/clean/Fm/soft/
+    - assets/audio/chords/clean/G/normal/
+    - assets/audio/chords/clean/G/soft/
+    - assets/audio/chords/clean/Gm/normal/
+    - assets/audio/chords/clean/Gm/soft/
     - assets/data/
     - assets/data/exercises/
     - .env

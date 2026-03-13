@@ -1,45 +1,37 @@
 import 'dart:async';
-import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:just_audio/just_audio.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../data/chords_data.dart';
-import 'chord_synthesizer.dart';
+import 'audio_style.dart';
 import 'metronome_service.dart';
 
-/// Orchestrates sequential chord preview playback using synthesized audio.
+/// Orchestrates sequential chord preview playback using recorded audio samples.
 class ChordPreviewService {
   final AudioPlayer _player = AudioPlayer();
-  final ChordSynthesizer _synthesizer = ChordSynthesizer();
   bool _cancelled = false;
   bool _playing = false;
-  String? _tempDir;
 
   bool get isPlaying => _playing;
 
-  Future<String> _getTempDir() async {
-    if (_tempDir != null) return _tempDir!;
-    final dir = await getTemporaryDirectory();
-    _tempDir = dir.path;
-    return _tempDir!;
+  /// Returns the asset path for a chord's recorded audio sample.
+  /// Falls back to normal intensity if the requested intensity is unavailable.
+  String _getAssetPath(String chordName, AudioIntensity intensity) {
+    final intensityName = intensity.name; // soft, normal, hard
+    return 'assets/audio/chords/clean/$chordName/$intensityName/${chordName}_${intensityName}_take_01.mp3';
   }
 
-  /// Writes WAV bytes to a temp file and returns the path.
-  Future<String> _writeWavFile(String chordName, Uint8List wav) async {
-    final dir = await _getTempDir();
-    final file = File('$dir/chord_preview_$chordName.wav');
-    await file.writeAsBytes(wav, flush: true);
-    return file.path;
-  }
-
-  /// Plays a preview of the chord sequence.
+  /// Plays a preview of the chord sequence using recorded samples.
   Future<void> playPreview({
     required List<ChordData> chords,
     required void Function(int index) onChordChange,
     required void Function() onComplete,
     int chordDuration = 1500,
+    int bpm = 96,
+    AudioStyle style = AudioStyle.clean,
+    AudioIntensity intensity = AudioIntensity.normal,
+    AudioGroove groove = AudioGroove.pop,
+    double swing = 0.12,
     MetronomeService? metronome,
   }) async {
     _cancelled = false;
@@ -49,24 +41,36 @@ class ChordPreviewService {
       if (_cancelled) break;
 
       onChordChange(i);
-      metronome?.tick();
-
-      final wav = _synthesizer.getChordWav(
-        chords[i],
-        durationSeconds: chordDuration / 1000.0,
-      );
+      final beatMs = (60000 / bpm).round().clamp(200, 2000);
+      int elapsed = 0;
+      if (metronome != null) {
+        unawaited(metronome.tick());
+      }
 
       try {
-        final path = await _writeWavFile(chords[i].name, wav);
-        await _player.setFilePath(path);
+        final assetPath = _getAssetPath(chords[i].name, intensity);
+        await _player.setAsset(assetPath);
         await _player.setVolume(1.0);
         await _player.seek(Duration.zero);
         unawaited(_player.play());
       } catch (e) {
-        print('ChordPreviewService playback error: $e');
+        // If the recorded sample is not found, log and continue silently.
+        assert(() {
+          // ignore: avoid_print
+          print('ChordPreviewService: no sample for ${chords[i].name}: $e');
+          return true;
+        }());
       }
 
-      await Future.delayed(Duration(milliseconds: chordDuration));
+      while (elapsed < chordDuration && !_cancelled) {
+        final remaining = chordDuration - elapsed;
+        final sleepMs = beatMs > remaining ? remaining : beatMs;
+        await Future.delayed(Duration(milliseconds: sleepMs));
+        elapsed += sleepMs;
+        if (metronome != null && elapsed < chordDuration && !_cancelled) {
+          unawaited(metronome.tick());
+        }
+      }
       if (_cancelled) break;
       try {
         await _player.stop();
@@ -89,7 +93,6 @@ class ChordPreviewService {
   /// Dispose resources.
   void dispose() {
     cancel();
-    _synthesizer.clearCache();
     _player.dispose();
   }
 }
