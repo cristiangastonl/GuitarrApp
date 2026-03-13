@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "generatedAt": "2026-03-13T22:00:00.000Z",
+  "root": "assets/audio/chords",
+  "styles": {
+    "clean": {
+      "A": {
+        "hard": [],
+        "normal": ["clean/A/normal/A_normal_take_01.mp3"],
+        "soft": ["clean/A/soft/A_soft_take_01.mp3"]
+      },
+      "Am": {
+        "hard": [],
+        "normal": ["clean/Am/normal/Am_normal_take_01.mp3"],
+        "soft": ["clean/Am/soft/Am_soft_take_01.mp3"]
+      },
+      "B": {
+        "hard": [],
+        "normal": ["clean/B/normal/B_normal_take_01.mp3"],
+        "soft": ["clean/B/soft/B_soft_take_01.mp3"]
+      },
+      "Bm": {
+        "hard": [],
+        "normal": ["clean/Bm/normal/Bm_normal_take_01.mp3"],
+        "soft": ["clean/Bm/soft/Bm_soft_take_01.mp3"]
+      },
+      "C": {
+        "hard": [],
+        "normal": ["clean/C/normal/C_normal_take_01.mp3"],
+        "soft": ["clean/C/soft/C_soft_take_01.mp3"]
+      },
+      "Cm": {
+        "hard": [],
+        "normal": ["clean/Cm/normal/Cm_normal_take_01.mp3"],
+        "soft": ["clean/Cm/soft/Cm_soft_take_01.mp3"]
+      },
+      "D": {
+        "hard": [],
+        "normal": ["clean/D/normal/D_normal_take_01.mp3"],
+        "soft": ["clean/D/soft/D_soft_take_01.mp3"]
+      },
+      "Dm": {
+        "hard": [],
+        "normal": ["clean/Dm/normal/Dm_normal_take_01.mp3"],
+        "soft": ["clean/Dm/soft/Dm_soft_take_01.mp3"]
+      },
+      "E": {
+        "hard": [],
+        "normal": ["clean/E/normal/E_normal_take_01.mp3"],
+        "soft": ["clean/E/soft/E_soft_take_01.mp3"]
+      },
+      "Em": {
+        "hard": [],
+        "normal": ["clean/Em/normal/Em_normal_take_01.mp3"],
+        "soft": ["clean/Em/soft/Em_soft_take_01.mp3"]
+      },
+      "F": {
+        "hard": [],
+        "normal": ["clean/F/normal/F_normal_take_01.mp3"],
+        "soft": ["clean/F/soft/F_soft_take_01.mp3"]
+      },
+      "Fm": {
+        "hard": [],
+        "normal": ["clean/Fm/normal/Fm_normal_take_01.mp3"],
+        "soft": ["clean/Fm/soft/Fm_soft_take_01.mp3"]
+      },
+      "G": {
+        "hard": [],
+        "normal": ["clean/G/normal/G_normal_take_01.mp3"],
+        "soft": ["clean/G/soft/G_soft_take_01.mp3"]
+      },
+      "Gm": {
+        "hard": [],
+        "normal": ["clean/Gm/normal/Gm_normal_take_01.mp3"],
+        "soft": ["clean/Gm/soft/Gm_soft_take_01.mp3"]
+      }
+    }
+  }
+}
