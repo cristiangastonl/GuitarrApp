@@ -81,3 +81,32 @@ Para lograr esto necesitamos:
 2. ✅ Modelo de detección de notas (Backend)  
 3. ✅ UI que muestre la nota detectada (Frontend)
 4. ✅ Flujo de permisos de micrófono (Frontend)
+
+## 🤖 ML Chord Detection Pipeline
+
+**Estado:** Pendiente de implementación. La detección actual usa YIN pitch detection (nota individual). El objetivo es reemplazarla con clasificación ML de acordes completos.
+
+**Skill:** Leé `.claude/skills/guitarrapp-ml/SKILL.md` antes de trabajar en cualquier tarea de ML.
+
+**Plan completo:** `docs/ml/IMPLEMENTATION_PLAN.md` — 6 tareas en orden.
+
+**Estructura del pipeline:**
+```
+training/
+├── scripts/          # Python: augmentation, features, training, export, eval
+├── configs/          # training_config.yaml + mel_params.json (SHARED con Dart)
+├── dataset/          # raw → augmented → features
+└── models/           # checkpoints → exports (.tflite)
+```
+
+**Parámetros Mel compartidos** (definidos en `training/configs/mel_params.json`):
+- sr=16000, n_mels=64, n_fft=1024, hop_length=512, fmin=80, fmax=4000
+- DEBEN ser idénticos en Python (training) y Dart (inference)
+
+**Tareas:**
+1. Dataset augmentation (28 → 7500+ samples)
+2. Feature extraction (mel spectrograms)
+3. CNN training (target: >85% accuracy)
+4. TFLite int8 export (<500KB)
+5. Flutter integration (tflite_flutter + mel service)
+6. Game logic integration (reemplazar frequency matching)

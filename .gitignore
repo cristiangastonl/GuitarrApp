@@ -57,3 +57,13 @@ test-results/
 
 # Archives
 *.zip
+
+# ML Training - generated files (keep scripts and configs, ignore data/models)
+training/dataset/augmented/**/*.wav
+training/dataset/features/*.npz
+training/models/checkpoints/
+training/models/exports/*.tflite
+!training/dataset/augmented/.gitkeep
+!training/dataset/features/.gitkeep
+!training/models/checkpoints/.gitkeep
+!training/models/exports/.gitkeep

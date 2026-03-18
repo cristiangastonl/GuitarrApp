@@ -1,0 +1,14 @@
+{
+  "_comment": "These parameters MUST be identical in Python training and Dart inference",
+  "sample_rate": 16000,
+  "n_mels": 64,
+  "n_fft": 1024,
+  "hop_length": 512,
+  "fmin": 80,
+  "fmax": 4000,
+  "log_offset": 1e-6,
+  "audio_duration_seconds": 1.5,
+  "expected_shape": [64, 47, 1],
+  "native_capture_rate": 44100,
+  "resample_required": true
+}
